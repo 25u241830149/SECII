@@ -15,7 +15,7 @@
 
 **前端技术栈**
 
-- 核心框架：Vue + uni-app
+- 核心框架：Vue
 - UI 组件库：Element Plus
 - 状态管理：Pinia
 - 网络请求：Axios
@@ -36,8 +36,9 @@
 
 ```text
 SECII项目/
+├── github/      # 用于CI的搭建
 ├── backend/     # 用于存放 SpringBoot 后端代码
-├── frontend/    # 用于存放 Vue + uni-app 前端代码
+├── frontend/    # 用于存放 Vue 前端代码
 ├── docs/        # 用于存放项目文档
 │   └── setup.md # 开发环境搭建说明
 ├── sql/         # 用于存放数据库脚本文件 (如建表、测试数据)

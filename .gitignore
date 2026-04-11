@@ -1,4 +1,4 @@
-#java,maven,vue,windows,visualstudio,intellij,node,uni-app
+#java,maven,vue,windows,visualstudio,intellij,node
 
 # Created by https://www.toptal.com/developers/gitignore/api/java,maven,vue,windows,visualstudio,intellij,node
 # Edit at https://www.toptal.com/developers/gitignore?templates=java,maven,vue,windows,visualstudio,intellij,node
@@ -734,20 +734,3 @@ FodyWeavers.xsd
 # End of https://www.toptal.com/developers/gitignore/api/java,maven,vue,windows,visualstudio,intellij,node
 
 解释
-
-# =========================
-# uni-app 专属忽略配置
-# =========================
-# 依赖包
-node_modules/
-
-# uni-app 编译生成的各种平台的输出目录（非常重要）
-unpackage/
-dist/
-
-# 如果你使用的是 HBuilderX 编辑器，它产生的本地配置
-.hbuilder/
-.hbuilderx/
-
-# 针对微信小程序的本地配置文件（避免团队成员配置冲突）
-project.private.config.json
