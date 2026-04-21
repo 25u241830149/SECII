@@ -1,23 +1,22 @@
 stages:
-  - check
+  - trigger
 
-frontend-check:
-  stage: check
-  image: node:18
-  script:
-    - echo "因为当前 frontend 还没放入真正的 Vue 代码，这里先用 echo 占位"
-    - echo "等后续有了 package.json，请取消下面代码的注释并删除此处 echo"
-    # - cd frontend
-    # - npm install      # 安装依赖
-    # - npm run lint     # 【代码风格检查】(检查拼写、规范)
-    # - npm run build    # 【代码编译检查】(尝试打包，看有没有语法错误)
+# 触发前端 pipeline
+frontend:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab/frontend.yml
+  rules:
+    - changes:
+        - frontend/**/*
 
-backend-check:
-  stage: check
-  image: eclipse-temurin:17-jdk
-  script:
-    - echo "因为当前 backend 还没放入真正的 SpringBoot 代码，这里先用 echo 占位"
-    - echo "等后续有了 pom.xml，请取消下面代码的注释并删除此处 echo"
-    # - cd backend
-    # - mvn clean compile   # 【代码编译检查】(确保 Java 代码没有语法错误能编译)
-    # - mvn checkstyle:check # 【代码风格检查】(需要配合 Checkstyle 插件检查 Java 代码规范)
+# 触发后端 pipeline
+backend:
+  stage: trigger
+  trigger:
+    include:
+      - local: .gitlab/backend.yml
+  rules:
+    - changes:
+        - backend/**/*

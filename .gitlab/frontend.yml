@@ -1,0 +1,13 @@
+stages:
+  - check
+
+frontend-check:
+  stage: check
+  image: node:18
+  script:
+    - echo "因为当前 frontend 还没放入真正的 Vue 代码，这里先用 echo 占位"
+    - echo "等后续有了 package.json，请取消下面代码的注释并删除此处 echo"
+    # - cd frontend
+    # - npm install      # 安装依赖
+    # - npm run lint     # 【代码风格检查】(检查拼写、规范)
+    # - npm run build    # 【代码编译检查】(尝试打包，看有没有语法错误)
