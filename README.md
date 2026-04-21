@@ -36,7 +36,7 @@
 
 ```text
 SECII项目/
-├── github/      # 用于CI的搭建
+├── .gitlab-ci.yml # GitLab CI 流水线配置文件
 ├── backend/     # 用于存放 SpringBoot 后端代码
 ├── frontend/    # 用于存放 Vue 前端代码
 ├── docs/        # 用于存放项目文档
