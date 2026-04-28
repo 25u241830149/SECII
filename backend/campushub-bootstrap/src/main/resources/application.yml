@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: campushub-bootstrap
+
+server:
+  port: 8080
