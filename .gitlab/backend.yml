@@ -1,12 +1,10 @@
-stages:
-  - check
+# # 配置仅供参考！
+# stages:
+#   - build
 
-backend-check:
-  stage: check
-  image: eclipse-temurin:17-jdk
-  script:
-    - echo "因为当前 backend 还没放入真正的 SpringBoot 代码，这里先用 echo 占位"
-    - echo "等后续有了 pom.xml，请取消下面代码的注释并删除此处 echo"
-    # - cd backend
-    # - mvn clean compile   # 【代码编译检查】(确保 Java 代码没有语法错误能编译)
-    # - mvn checkstyle:check # 【代码风格检查】(需要配合 Checkstyle 插件检查 Java 代码规范)
+# backend-build:
+#   stage: build
+#   image: maven:3.9.9-eclipse-temurin-17
+#   script:
+#     - cd backend
+#     - mvn clean package -DskipTests
