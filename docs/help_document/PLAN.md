@@ -377,3 +377,14 @@ common (无依赖)
 - API 规范文档：`docs/P3/API规范文档.md`（接口契约以本文档为准）
 - 开发环境配置：`docs/help_document/setup.md`
 - 参考作业要求：`refs/P0-项目启动与AI协作契约.md`、`refs/P1-需求分析.md`、`refs/P2-体系结构设计.md`
+
+---
+
+## 部分修改
+
+- B1.2 原文写“创建 8 个子模块目录及 POM”，但实际模块清单包含 common、user、task、order、review、report、message、forum、bootstrap，共 9 个模块；已按实际清单创建 9 个 Maven 子模块。
+- B1.3 原文写“13 张表 DDL”，但 P3 阶段 ER/建表 SQL 与后续 report 模块/API 均包含举报表 `t_report`；已在 `schema.sql` 中保留 `t_report`，因此当前数据库脚本共 14 张表。
+
+## 注意事项
+
+- 管理员种子数据是系统启动后的第一个后台账号。当前 `schema.sql` 中管理员密码字段保存的是 BCrypt 哈希，不是明文密码；后续 B1.8 实现 `EncryptUtils` 或登录逻辑时，需要统一使用 BCrypt 校验。当前管理员种子账号的明文初始密码需要团队确认，并建议上线前强制修改。
