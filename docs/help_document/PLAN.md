@@ -388,3 +388,5 @@ common (无依赖)
 ## 注意事项
 
 - 管理员种子数据是系统启动后的第一个后台账号。当前 `schema.sql` 中管理员密码字段保存的是 BCrypt 哈希，不是明文密码；后续 B1.8 实现 `EncryptUtils` 或登录逻辑时，需要统一使用 BCrypt 校验。当前管理员种子账号的明文初始密码需要团队确认，并建议上线前强制修改。
+- 2026-05-15 已通过 OSGeo 官方 PostgreSQL 15 PostGIS bundle 安装 PostGIS 3.6.2，并在 `secii_db` 中成功执行 `schema.sql`。当前数据库包含 14 张业务表，另有 PostGIS 自动表 `spatial_ref_sys`；`postgis` 与 `pg_trgm` 扩展均已启用。（管泽昊电脑已配置好环境）
+- B1.4 已引入 `campushub.cors`、`campushub.jwt`、`campushub.redisson` 三组配置前缀。当前 Java 类中有开发默认值，后续 B1.10 编写 `application.yml` / `application-dev.yml` 时需要显式覆盖 JWT secret、Redis/Redisson 地址、CORS 前端地址；生产环境禁止使用默认 JWT secret。
