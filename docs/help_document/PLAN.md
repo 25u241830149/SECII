@@ -384,10 +384,11 @@ common (无依赖)
 
 - B1.2 原文写“创建 8 个子模块目录及 POM”，但实际模块清单包含 common、user、task、order、review、report、message、forum、bootstrap，共 9 个模块；已按实际清单创建 9 个 Maven 子模块。
 - B1.3 原文写“13 张表 DDL”，但 P3 阶段 ER/建表 SQL 与后续 report 模块/API 均包含举报表 `t_report`；已在 `schema.sql` 中保留 `t_report`，因此当前数据库脚本共 14 张表。
+- B1.6 已实现正式 `ApiResponse` / `PageResponse`，并将 B1.5 中 `GlobalExceptionHandler` 临时使用的内部 `ErrorBody` 替换为 `ApiResponse`，统一响应模型不再重复。
 
 ## 注意事项
 
 - 管理员种子数据是系统启动后的第一个后台账号。当前 `schema.sql` 中管理员密码字段保存的是 BCrypt 哈希，不是明文密码；后续 B1.8 实现 `EncryptUtils` 或登录逻辑时，需要统一使用 BCrypt 校验。当前管理员种子账号的明文初始密码需要团队确认，并建议上线前强制修改。
 - 2026-05-15 已通过 OSGeo 官方 PostgreSQL 15 PostGIS bundle 安装 PostGIS 3.6.2，并在 `secii_db` 中成功执行 `schema.sql`。当前数据库包含 14 张业务表，另有 PostGIS 自动表 `spatial_ref_sys`；`postgis` 与 `pg_trgm` 扩展均已启用。（管泽昊电脑已配置好环境）
 - B1.4 已引入 `campushub.cors`、`campushub.jwt`、`campushub.redisson` 三组配置前缀。当前 Java 类中有开发默认值，后续 B1.10 编写 `application.yml` / `application-dev.yml` 时需要显式覆盖 JWT secret、Redis/Redisson 地址、CORS 前端地址；生产环境禁止使用默认 JWT secret。
-- B1.5 的 `GlobalExceptionHandler` 已按 API 规范返回 `code/message/data` 结构；由于 B1.6 尚未实现正式 `ApiResponse`，当前先使用处理器内部 `ErrorBody` 记录类型。后续完成 B1.6 时应统一替换为 `ApiResponse`，避免响应模型重复。
+- B1.6 的 Java 枚举按 API 规范使用字符串语义值；当前 `schema.sql` 中部分字段仍是 `SMALLINT` 编码。后续实现实体、Mapper 或 TypeHandler 时，需要统一枚举与数据库数字编码之间的映射，避免接口值与落库值混用。

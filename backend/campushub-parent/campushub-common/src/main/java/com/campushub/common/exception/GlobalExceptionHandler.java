@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import com.campushub.common.response.ApiResponse;
+
 import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
@@ -34,28 +36,28 @@ public class GlobalExceptionHandler {
     private static final int INTERNAL_SERVER_ERROR = 500;
 
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ErrorBody> handleBusinessException(BusinessException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
         return error(ex.getCode(), ex.getMessage());
     }
 
     @ExceptionHandler(SystemException.class)
-    public ResponseEntity<ErrorBody> handleSystemException(SystemException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleSystemException(SystemException ex) {
         log.error("System exception", ex);
         return error(ex.getCode(), ex.getMessage());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorBody> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         return error(BAD_REQUEST, resolveFieldErrors(ex.getBindingResult().getFieldErrors()));
     }
 
     @ExceptionHandler(BindException.class)
-    public ResponseEntity<ErrorBody> handleBindException(BindException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleBindException(BindException ex) {
         return error(BAD_REQUEST, resolveFieldErrors(ex.getBindingResult().getFieldErrors()));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<ErrorBody> handleConstraintViolation(ConstraintViolationException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
         String message = ex.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(Collectors.joining("; "));
@@ -63,56 +65,56 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<ErrorBody> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
         return error(BAD_REQUEST, "缺少必填参数: " + ex.getParameterName());
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<ErrorBody> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return error(BAD_REQUEST, "参数类型不正确: " + ex.getName());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ErrorBody> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         return error(BAD_REQUEST, "请求体格式错误");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<ErrorBody> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
         return error(BAD_REQUEST, "请求方法不支持: " + ex.getMethod());
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorBody> handleAuthenticationException(AuthenticationException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
         return error(UNAUTHORIZED, "未认证或 Token 已失效");
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorBody> handleAccessDeniedException(AccessDeniedException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
         return error(FORBIDDEN, "无权限访问该资源");
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<ErrorBody> handleNoHandlerFound(NoHandlerFoundException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleNoHandlerFound(NoHandlerFoundException ex) {
         return error(NOT_FOUND, "资源不存在");
     }
 
     @ExceptionHandler(ErrorResponseException.class)
-    public ResponseEntity<ErrorBody> handleErrorResponseException(ErrorResponseException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleErrorResponseException(ErrorResponseException ex) {
         int code = ex.getStatusCode().value();
         String message = defaultIfBlank(ex.getBody().getDetail(), ex.getBody().getTitle());
         return error(code, defaultIfBlank(message, "请求处理失败"));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorBody> handleException(Exception ex) {
+    public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
         log.error("Unhandled exception", ex);
         return error(INTERNAL_SERVER_ERROR, "服务器内部错误");
     }
 
-    private ResponseEntity<ErrorBody> error(int code, String message) {
+    private ResponseEntity<ApiResponse<Void>> error(int code, String message) {
         return ResponseEntity.status(resolveHttpStatus(code))
-                .body(new ErrorBody(code, defaultIfBlank(message, "请求处理失败"), null));
+                .body(ApiResponse.fail(code, defaultIfBlank(message, "请求处理失败")));
     }
 
     private HttpStatus resolveHttpStatus(int code) {
@@ -132,6 +134,4 @@ public class GlobalExceptionHandler {
         return value == null || value.isBlank() ? fallback : value;
     }
 
-    public record ErrorBody(int code, String message, Object data) {
-    }
 }
