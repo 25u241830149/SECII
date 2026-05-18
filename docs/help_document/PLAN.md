@@ -386,15 +386,18 @@ common (无依赖)
 - B1.3 原文写“13 张表 DDL”，但 P3 阶段 ER/建表 SQL 与后续 report 模块/API 均包含举报表 `t_report`；已在 `schema.sql` 中保留 `t_report`，因此当前数据库脚本共 14 张表。
 - B1.6 已实现正式 `ApiResponse` / `PageResponse`，并将 B1.5 中 `GlobalExceptionHandler` 临时使用的内部 `ErrorBody` 替换为 `ApiResponse`，统一响应模型不再重复。
 - B1.8 已将散落在异常处理与安全认证中的 HTTP/业务错误码改为统一引用 `ErrorCode` 常量。
+- B1.10 已在 `application.yml` / `application-dev.yml` 中显式配置 JWT、Redis/Redisson、CORS、敏感词过滤、数据源、MyBatis-Plus 与 Springdoc 基础项。
 
 ## 注意事项
 
 - 管理员种子数据是系统启动后的第一个后台账号。当前 `schema.sql` 中管理员密码字段保存的是 BCrypt 哈希，不是明文密码；B1.8 已实现 `EncryptUtils`，后续登录逻辑需要统一使用 `EncryptUtils.matchesPassword` 做 BCrypt 校验。当前管理员种子账号的明文初始密码需要团队确认，并建议上线前强制修改。
 - 2026-05-15 已通过 OSGeo 官方 PostgreSQL 15 PostGIS bundle 安装 PostGIS 3.6.2，并在 `secii_db` 中成功执行 `schema.sql`。当前数据库包含 14 张业务表，另有 PostGIS 自动表 `spatial_ref_sys`；`postgis` 与 `pg_trgm` 扩展均已启用。（管泽昊电脑已配置好环境）
-- B1.4 已引入 `campushub.cors`、`campushub.jwt`、`campushub.redisson` 三组配置前缀。当前 Java 类中有开发默认值，后续 B1.10 编写 `application.yml` / `application-dev.yml` 时需要显式覆盖 JWT secret、Redis/Redisson 地址、CORS 前端地址；生产环境禁止使用默认 JWT secret。
+- B1.4 已引入 `campushub.cors`、`campushub.jwt`、`campushub.redisson` 三组配置前缀，B1.10 已在配置文件中覆盖开发环境默认值；生产环境仍必须通过环境变量设置强 JWT secret、数据库密码、Redis 密码与 CORS 白名单，禁止使用开发默认值。
 - B1.6 的 Java 枚举按 API 规范使用字符串语义值；当前 `schema.sql` 中部分字段仍是 `SMALLINT` 编码。后续实现实体、Mapper 或 TypeHandler 时，需要统一枚举与数据库数字编码之间的映射，避免接口值与落库值混用。
 - B1.7 的 JWT claim 约定为 `userId`、`username`、`role`，后续 `AuthService` 登录成功生成 token 时应统一使用 `JwtTokenProvider`。后续补 Spring Security 配置时，需要将 `JwtAuthFilter` 放入 Security 过滤器链，并显式放行注册、登录、公开用户信息、公开任务/帖子列表等匿名接口。
 - B1.8 中 `com.campushub.common.constant.MessageType` 是字符串常量类，B1.6 中 `com.campushub.common.enums.MessageType` 是业务枚举；两者同名但包不同，后续代码 import 时要按用途明确选择，避免误用。
+- B1.9 的 `SensitiveWordFilter` 是可配置骨架，当前采用大小写归一化后的精确包含匹配；后续 B2/B4 接入任务、帖子、评论、评价创建入口时，需要主动调用 `validate` 或 `filter`，若词库规模变大再替换为 Trie/AC 自动机或数据库词库加载。
+- B1.10 的开发环境配置中 `spring.sql.init.mode` 为 `never`，避免启动时误重复执行建表脚本；新环境初始化数据库时仍需手动执行 `campushub-bootstrap/src/main/resources/db/schema.sql`，或临时调整 SQL 初始化策略。
 - B1.6 当前枚举清单如下，后续若需求、API 规范或数据库编码调整，需要同步修改 Java 枚举、DTO、前端类型定义、数据库约束/映射逻辑：
   - `UserRole`：`USER`、`ADMIN`
   - `VerificationStatus`：`PENDING`、`APPROVED`、`REJECTED`

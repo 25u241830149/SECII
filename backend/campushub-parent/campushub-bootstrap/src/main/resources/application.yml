@@ -1,0 +1,81 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: campushub
+  profiles:
+    active: dev
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.campushub.**.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: true
+      logic-not-delete-value: false
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+campushub:
+  cors:
+    allowed-origin-patterns:
+      - http://localhost:5173
+      - http://127.0.0.1:5173
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+    exposed-headers:
+      - Authorization
+    allow-credentials: true
+    max-age: 3600
+  jwt:
+    secret: ${CAMPUSHUB_JWT_SECRET:campushub-development-secret-change-me-please-32-bytes}
+    access-token-ttl: 2h
+    refresh-token-ttl: 7d
+    issuer: campushub
+    header-name: Authorization
+    token-prefix: "Bearer "
+  redisson:
+    address: ${CAMPUSHUB_REDISSON_ADDRESS:redis://localhost:6379}
+    password: ${CAMPUSHUB_REDIS_PASSWORD:}
+    database: ${CAMPUSHUB_REDIS_DATABASE:0}
+    connection-pool-size: 16
+    connection-minimum-idle-size: 4
+    timeout: 3000
+  audit:
+    sensitive-word:
+      enabled: true
+      replacement: "***"
+      words:
+        - 违规
+        - 广告
+        - 诈骗
+
+logging:
+  level:
+    root: INFO
+    com.campushub: INFO
