@@ -398,6 +398,7 @@ common (无依赖)
 - B1.8 中 `com.campushub.common.constant.MessageType` 是字符串常量类，B1.6 中 `com.campushub.common.enums.MessageType` 是业务枚举；两者同名但包不同，后续代码 import 时要按用途明确选择，避免误用。
 - B1.9 的 `SensitiveWordFilter` 是可配置骨架，当前采用大小写归一化后的精确包含匹配；后续 B2/B4 接入任务、帖子、评论、评价创建入口时，需要主动调用 `validate` 或 `filter`，若词库规模变大再替换为 Trie/AC 自动机或数据库词库加载。
 - B1.10 的开发环境配置中 `spring.sql.init.mode` 为 `never`，避免启动时误重复执行建表脚本；新环境初始化数据库时仍需手动执行 `campushub-bootstrap/src/main/resources/db/schema.sql`，或临时调整 SQL 初始化策略。
+- F1.1 当前全量引入 Element Plus，`npm run build` 时 Vite 可能提示首包偏大；后续页面变多时，可以改成 Element Plus 按需导入来优化体积。
 - B1.6 当前枚举清单如下，后续若需求、API 规范或数据库编码调整，需要同步修改 Java 枚举、DTO、前端类型定义、数据库约束/映射逻辑：
   - `UserRole`：`USER`、`ADMIN`
   - `VerificationStatus`：`PENDING`、`APPROVED`、`REJECTED`
