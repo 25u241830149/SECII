@@ -1,16 +1,16 @@
 package com.campushub.common.exception;
 
+import com.campushub.common.constant.ErrorCode;
+
 /**
  * Exception for expected business-rule failures that should be returned to clients.
  */
 public class BusinessException extends RuntimeException {
 
-    private static final int DEFAULT_CODE = 422;
-
     private final int code;
 
     public BusinessException(String message) {
-        this(DEFAULT_CODE, message);
+        this(ErrorCode.BUSINESS_ERROR, message);
     }
 
     public BusinessException(int code, String message) {

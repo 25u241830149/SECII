@@ -385,10 +385,23 @@ common (无依赖)
 - B1.2 原文写“创建 8 个子模块目录及 POM”，但实际模块清单包含 common、user、task、order、review、report、message、forum、bootstrap，共 9 个模块；已按实际清单创建 9 个 Maven 子模块。
 - B1.3 原文写“13 张表 DDL”，但 P3 阶段 ER/建表 SQL 与后续 report 模块/API 均包含举报表 `t_report`；已在 `schema.sql` 中保留 `t_report`，因此当前数据库脚本共 14 张表。
 - B1.6 已实现正式 `ApiResponse` / `PageResponse`，并将 B1.5 中 `GlobalExceptionHandler` 临时使用的内部 `ErrorBody` 替换为 `ApiResponse`，统一响应模型不再重复。
+- B1.8 已将散落在异常处理与安全认证中的 HTTP/业务错误码改为统一引用 `ErrorCode` 常量。
 
 ## 注意事项
 
-- 管理员种子数据是系统启动后的第一个后台账号。当前 `schema.sql` 中管理员密码字段保存的是 BCrypt 哈希，不是明文密码；后续 B1.8 实现 `EncryptUtils` 或登录逻辑时，需要统一使用 BCrypt 校验。当前管理员种子账号的明文初始密码需要团队确认，并建议上线前强制修改。
+- 管理员种子数据是系统启动后的第一个后台账号。当前 `schema.sql` 中管理员密码字段保存的是 BCrypt 哈希，不是明文密码；B1.8 已实现 `EncryptUtils`，后续登录逻辑需要统一使用 `EncryptUtils.matchesPassword` 做 BCrypt 校验。当前管理员种子账号的明文初始密码需要团队确认，并建议上线前强制修改。
 - 2026-05-15 已通过 OSGeo 官方 PostgreSQL 15 PostGIS bundle 安装 PostGIS 3.6.2，并在 `secii_db` 中成功执行 `schema.sql`。当前数据库包含 14 张业务表，另有 PostGIS 自动表 `spatial_ref_sys`；`postgis` 与 `pg_trgm` 扩展均已启用。（管泽昊电脑已配置好环境）
 - B1.4 已引入 `campushub.cors`、`campushub.jwt`、`campushub.redisson` 三组配置前缀。当前 Java 类中有开发默认值，后续 B1.10 编写 `application.yml` / `application-dev.yml` 时需要显式覆盖 JWT secret、Redis/Redisson 地址、CORS 前端地址；生产环境禁止使用默认 JWT secret。
 - B1.6 的 Java 枚举按 API 规范使用字符串语义值；当前 `schema.sql` 中部分字段仍是 `SMALLINT` 编码。后续实现实体、Mapper 或 TypeHandler 时，需要统一枚举与数据库数字编码之间的映射，避免接口值与落库值混用。
+- B1.7 的 JWT claim 约定为 `userId`、`username`、`role`，后续 `AuthService` 登录成功生成 token 时应统一使用 `JwtTokenProvider`。后续补 Spring Security 配置时，需要将 `JwtAuthFilter` 放入 Security 过滤器链，并显式放行注册、登录、公开用户信息、公开任务/帖子列表等匿名接口。
+- B1.8 中 `com.campushub.common.constant.MessageType` 是字符串常量类，B1.6 中 `com.campushub.common.enums.MessageType` 是业务枚举；两者同名但包不同，后续代码 import 时要按用途明确选择，避免误用。
+- B1.6 当前枚举清单如下，后续若需求、API 规范或数据库编码调整，需要同步修改 Java 枚举、DTO、前端类型定义、数据库约束/映射逻辑：
+  - `UserRole`：`USER`、`ADMIN`
+  - `VerificationStatus`：`PENDING`、`APPROVED`、`REJECTED`
+  - `TaskCategory`：`EXPRESS`、`STUDY`、`SECOND_HAND`、`TEAM_UP`、`OTHER`
+  - `TaskStatus`：`OPEN`、`IN_PROGRESS`、`COMPLETED`、`CANCELLED`、`OFFLINE`
+  - `OrderStatus`：`PENDING`、`CONFIRMED`、`COMPLETED`、`CANCELLED`
+  - `SortType`：`time`、`hot`
+  - `PostSortType`：`latest`、`views`、`recommend`
+  - `PostCategory`：`HELP`、`STUDY`、`TRADE`、`LOST_FOUND`、`TEAM_UP`、`OTHER`
+  - `MessageType`：`ORDER`、`CHAT`、`NOTICE`、`SYSTEM`

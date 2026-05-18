@@ -1,16 +1,16 @@
 package com.campushub.common.exception;
 
+import com.campushub.common.constant.ErrorCode;
+
 /**
  * Exception for infrastructure or system failures with controlled client output.
  */
 public class SystemException extends RuntimeException {
 
-    private static final int DEFAULT_CODE = 500;
-
     private final int code;
 
     public SystemException(String message) {
-        this(DEFAULT_CODE, message);
+        this(ErrorCode.INTERNAL_SERVER_ERROR, message);
     }
 
     public SystemException(int code, String message) {
@@ -19,7 +19,7 @@ public class SystemException extends RuntimeException {
     }
 
     public SystemException(String message, Throwable cause) {
-        this(DEFAULT_CODE, message, cause);
+        this(ErrorCode.INTERNAL_SERVER_ERROR, message, cause);
     }
 
     public SystemException(int code, String message, Throwable cause) {

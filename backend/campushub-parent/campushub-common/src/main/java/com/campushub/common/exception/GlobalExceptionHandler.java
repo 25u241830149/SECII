@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import com.campushub.common.constant.ErrorCode;
 import com.campushub.common.response.ApiResponse;
 
 import jakarta.validation.ConstraintViolationException;
@@ -28,12 +29,6 @@ import jakarta.validation.ConstraintViolationException;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
-    private static final int BAD_REQUEST = 400;
-    private static final int UNAUTHORIZED = 401;
-    private static final int FORBIDDEN = 403;
-    private static final int NOT_FOUND = 404;
-    private static final int INTERNAL_SERVER_ERROR = 500;
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException ex) {
@@ -48,12 +43,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        return error(BAD_REQUEST, resolveFieldErrors(ex.getBindingResult().getFieldErrors()));
+        return error(ErrorCode.BAD_REQUEST, resolveFieldErrors(ex.getBindingResult().getFieldErrors()));
     }
 
     @ExceptionHandler(BindException.class)
     public ResponseEntity<ApiResponse<Void>> handleBindException(BindException ex) {
-        return error(BAD_REQUEST, resolveFieldErrors(ex.getBindingResult().getFieldErrors()));
+        return error(ErrorCode.BAD_REQUEST, resolveFieldErrors(ex.getBindingResult().getFieldErrors()));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -61,42 +56,42 @@ public class GlobalExceptionHandler {
         String message = ex.getConstraintViolations().stream()
                 .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
                 .collect(Collectors.joining("; "));
-        return error(BAD_REQUEST, defaultIfBlank(message, "请求参数不合法"));
+        return error(ErrorCode.BAD_REQUEST, defaultIfBlank(message, "请求参数不合法"));
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
-        return error(BAD_REQUEST, "缺少必填参数: " + ex.getParameterName());
+        return error(ErrorCode.BAD_REQUEST, "缺少必填参数: " + ex.getParameterName());
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        return error(BAD_REQUEST, "参数类型不正确: " + ex.getName());
+        return error(ErrorCode.BAD_REQUEST, "参数类型不正确: " + ex.getName());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        return error(BAD_REQUEST, "请求体格式错误");
+        return error(ErrorCode.BAD_REQUEST, "请求体格式错误");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleHttpRequestMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
-        return error(BAD_REQUEST, "请求方法不支持: " + ex.getMethod());
+        return error(ErrorCode.BAD_REQUEST, "请求方法不支持: " + ex.getMethod());
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
-        return error(UNAUTHORIZED, "未认证或 Token 已失效");
+        return error(ErrorCode.UNAUTHORIZED, ErrorCode.UNAUTHORIZED_MESSAGE);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException ex) {
-        return error(FORBIDDEN, "无权限访问该资源");
+        return error(ErrorCode.FORBIDDEN, ErrorCode.FORBIDDEN_MESSAGE);
     }
 
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoHandlerFound(NoHandlerFoundException ex) {
-        return error(NOT_FOUND, "资源不存在");
+        return error(ErrorCode.NOT_FOUND, ErrorCode.NOT_FOUND_MESSAGE);
     }
 
     @ExceptionHandler(ErrorResponseException.class)
@@ -109,7 +104,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
         log.error("Unhandled exception", ex);
-        return error(INTERNAL_SERVER_ERROR, "服务器内部错误");
+        return error(ErrorCode.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR_MESSAGE);
     }
 
     private ResponseEntity<ApiResponse<Void>> error(int code, String message) {
