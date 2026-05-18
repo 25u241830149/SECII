@@ -265,8 +265,10 @@ npm.cmd run preview
 
 说明：
 
+- F1.2 已配置 Vite 开发代理：前端请求 `/api/**` 会在开发环境转发到 `http://localhost:8080`。如需修改后端地址，请调整 `frontend/.env.development` 中的 `VITE_API_PROXY_TARGET`。
+- 生产环境默认 API 前缀为 `/api`，需要由部署层 Nginx、网关或同源后端负责转发。
 - F1.1 当前全量引入了 Element Plus，构建时 Vite 可能提示首包偏大。后续页面变多时，可以改成 Element Plus 按需导入来优化体积。
-- 当前前端只有基础占位首页，后续 F1.2-F1.7 会继续补代理、类型定义、request、路由守卫、Pinia stores 和布局。
+- 当前前端只有基础占位首页，后续 F1.3-F1.7 会继续补类型定义、request、路由守卫、Pinia stores 和布局。
 
 ## 常见问题
 
