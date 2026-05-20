@@ -391,6 +391,11 @@ common (无依赖)
 - B1.3 原文写“13 张表 DDL”，但 P3 阶段 ER/建表 SQL 与后续 report 模块/API 均包含举报表 `t_report`；已在 `schema.sql` 中保留 `t_report`，因此当前数据库脚本共 14 张表。
 - B1.6 已实现正式 `ApiResponse` / `PageResponse`，并将 B1.5 中 `GlobalExceptionHandler` 临时使用的内部 `ErrorBody` 替换为 `ApiResponse`，统一响应模型不再重复。
 - B1.10 已在 `application.yml` / `application-dev.yml` 中显式配置 JWT、Redis/Redisson、CORS、敏感词过滤、数据源、MyBatis-Plus 与 Springdoc 基础项。
+- B1.11-B1.15 已按架构文档 user 模块分层完成 `controller`、`service`、`mapper`、`entity`、`dto` 的后端骨架与核心实现，对应 `AuthController`、`UserController`、`AdminUserController`、`AuthService`、`UserService`、`CreditService`、`VerificationService`。
+- B1.11 数据层已按当前 `schema.sql` 完成 `u_user` 与 `t_user_verification` 实体、Mapper 与 XML；由于当前数据库脚本与 P2/P3 文档中的部分字段存在差异，本阶段以真实数据库脚本为准，不额外新增 `email`、`phone`、`department`、封禁到期时间等字段。
+- B1.12-B1.15 已按 API 规范完成 Sprint 1 后端用户接口：注册、登录、个人资料查询/更新、信用分查询、公开用户信息、个人主页、实名认证提交、账号注销、后台封禁、后台认证审核，并补充对应 DTO 与 Controller 测试。
+- B1.15 已补充最小 Spring Security 配置：注册、登录、公开用户信息、公开个人主页允许匿名访问；`/api/user/**` 需要登录；`/api/admin/**` 需要管理员角色；JWT 过滤器接入安全链。
+- B1.14 已补充 DTO JSON 兼容别名，便于当前前后端与接口文档字段命名过渡：`username/studentNo` 可映射到 `studentId`，`documentUrl/studentCardUrl` 可映射到 `studentCardImage`。
 
 ## 注意事项
 
@@ -402,6 +407,15 @@ common (无依赖)
 - B1.8 中 `com.campushub.common.constant.MessageType` 是字符串常量类，B1.6 中 `com.campushub.common.enums.MessageType` 是业务枚举；两者同名但包不同，后续代码 import 时要按用途明确选择，避免误用。
 - B1.9 的 `SensitiveWordFilter` 是可配置骨架，当前采用大小写归一化后的精确包含匹配；后续 B2/B4 接入任务、帖子、评论、评价创建入口时，需要主动调用 `validate` 或 `filter`，若词库规模变大再替换为 Trie/AC 自动机或数据库词库加载。
 - B1.10 的开发环境配置中 `spring.sql.init.mode` 为 `never`，避免启动时误重复执行建表脚本；新环境初始化数据库时仍需手动执行 `campushub-bootstrap/src/main/resources/db/schema.sql`，或临时调整 SQL 初始化策略。
+- B1.11-B1.15 已通过 `mvn -q -pl campushub-user -am test` 与 `mvn -q clean compile`；若后续修改 user 模块或 common 安全配置，至少需要重新执行这两条命令。
+- B1.12 及以后服务层如果要完整支持接口文档中的 `email`、`phone`、`department`、注册 `realName` 入库，需要先发起数据库 schema 调整任务，不能只改 DTO 或 Controller。
+- B1.12 当前 `studentId` 承担接口文档中 `username/studentNo` 的登录身份含义；后续如果产品决定同时支持用户名、邮箱或手机号登录，需要统一修改 API 文档、数据库唯一索引、注册登录校验和前端表单。
+- B1.13 当前信用分接口只从 `u_user.credit_score` 返回信用分与等级，`completedRate` 与 `cancelledRate` 暂为占位；后续需等 order/review 模块提供订单履约、取消和评价数据后再计算。
+- B1.15 当前个人主页接口只返回用户基础资料、信用等级和 0 值统计占位；后续需等 task/order/review 模块完成后接入历史发布、历史接单、评价等聚合数据。
+- B1.15 当前账号注销只做逻辑删除；API 规范要求“存在未完成订单不可注销”，后续需等 order 模块提供查询能力后补齐校验，并在失败时返回 422。
+- B1.15 当前后台封禁只设置 `u_user.status=2`，请求中的 `days` 因当前表结构没有封禁到期字段而未持久化；如需按天自动解封，需要后续补封禁到期字段、管理记录表或定时任务。
+- B1.15 当前实名认证提交和审核只更新数据库状态；后续需等 message 模块或 `NotificationGateway` 接入后，补充“提交后通知管理员”和“审核后通知用户”。
+- B1.15 的 Security 匿名放行规则应保持精确匹配，避免把 `/api/user/profile`、`/api/user/credit` 等需要登录的接口误放行。
 - F1.1 当前全量引入 Element Plus，`npm run build` 时 Vite 可能提示首包偏大；后续页面变多时，可以改成 Element Plus 按需导入来优化体积。
 - F1.2 已配置 Vite 开发代理：开发环境 `/api/**` 转发到 `.env.development` 中的 `VITE_API_PROXY_TARGET`，生产环境 `.env.production` 仅保留 `/api` 前缀，后续部署时需要由 Nginx、网关或同源后端负责转发。
 - B1.6 当前枚举清单如下，后续若需求、API 规范或数据库编码调整，需要同步修改 Java 枚举、DTO、前端类型定义、数据库约束/映射逻辑：
