@@ -286,6 +286,10 @@ CREATE INDEX IF NOT EXISTS idx_report_handler_status ON t_report (handler_id, st
 CREATE INDEX IF NOT EXISTS idx_report_target ON t_report (target_type, target_id);
 CREATE INDEX IF NOT EXISTS idx_report_status_time ON t_report (status, create_time DESC);
 
+-- Development seed admin account:
+-- student_id: admin
+-- initial password: CampusHub123
+-- The password below is a BCrypt hash and must be changed before production use.
 INSERT INTO u_user (
     student_id,
     password,
@@ -297,7 +301,7 @@ INSERT INTO u_user (
     is_deleted
 ) VALUES (
     'admin',
-    '$2a$10$7EqJtq98hPqEX7fNZaFWoOhiVFDxFfPj6Y8YzXW9dkopm8UMYxQ5q',
+    '$2a$10$PomPUVrcJgrqSwBGai29P.ct1YOZOmOYqpKzDGNjbPQUqs4r4N0V2',
     'CampusHub Admin',
     NULL,
     1,

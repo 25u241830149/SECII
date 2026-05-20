@@ -19,7 +19,10 @@
           <p>管理后台</p>
           <h1>{{ route.meta.title || '数据看板' }}</h1>
         </div>
-        <RouterLink to="/">返回前台</RouterLink>
+        <div class="admin-actions">
+          <RouterLink to="/">返回前台</RouterLink>
+          <button type="button" @click="handleLogout">退出登录</button>
+        </div>
       </header>
 
       <RouterView />
@@ -28,9 +31,15 @@
 </template>
 
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { useRoute, useRouter } from 'vue-router'
+
+import { useAuthStore, useUserStore } from '@/stores'
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+const userStore = useUserStore()
 
 const navItems = [
   { to: '/admin', label: '数据看板' },
@@ -39,6 +48,13 @@ const navItems = [
   { to: '/admin/reports', label: '举报处理' },
   { to: '/admin/notices', label: '公告管理' },
 ]
+
+const handleLogout = () => {
+  userStore.setProfile(null)
+  authStore.logout()
+  ElMessage.success('已退出登录')
+  router.replace('/login')
+}
 </script>
 
 <style scoped>
@@ -124,10 +140,26 @@ nav a.router-link-active {
   font-size: 26px;
 }
 
-.admin-header a {
+.admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-header a,
+.admin-actions button {
   color: #1268ed;
   font-weight: 700;
   text-decoration: none;
+}
+
+.admin-actions button {
+  padding: 8px 14px;
+  border: 1px solid #d7e8ff;
+  border-radius: 8px;
+  background: #eef5ff;
+  cursor: pointer;
+  font: inherit;
 }
 
 @media (max-width: 840px) {

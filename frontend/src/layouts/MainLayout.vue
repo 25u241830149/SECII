@@ -19,10 +19,26 @@
           消息通知
           <span v-if="appStore.unreadNoticeCount">{{ appStore.unreadNoticeCount }}</span>
         </button>
-        <RouterLink class="user-entry" to="/profile">
-          <span class="avatar"></span>
-          <span>{{ authStore.user?.nickname || '个人中心' }}</span>
-        </RouterLink>
+        <el-dropdown
+          v-if="authStore.isAuthenticated"
+          trigger="click"
+          class="user-menu"
+          @command="handleUserCommand"
+        >
+          <button type="button" class="user-entry user-menu-trigger">
+            <span class="avatar"></span>
+            <span>{{ authStore.user?.nickname || '个人中心' }}</span>
+            <span class="chevron">⌄</span>
+          </button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item command="profile-edit">资料编辑</el-dropdown-item>
+              <el-dropdown-item command="account-delete">账号注销</el-dropdown-item>
+              <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <RouterLink v-else class="auth-link primary" to="/login">登录 / 注册</RouterLink>
       </nav>
     </header>
 
@@ -94,10 +110,15 @@
 </template>
 
 <script setup lang="ts">
-import { useAppStore, useAuthStore } from '@/stores'
+import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
+
+import { useAppStore, useAuthStore, useUserStore } from '@/stores'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const userStore = useUserStore()
+const router = useRouter()
 
 const categories = [
   { value: 'ALL' as const, label: '全部需求', icon: '▦' },
@@ -107,6 +128,25 @@ const categories = [
   { value: 'TEAM_UP' as const, label: '活动组队', icon: '●' },
   { value: 'OTHER' as const, label: '其他', icon: '○' },
 ]
+
+const handleUserCommand = (command: string | number | object) => {
+  if (command === 'profile-edit') {
+    router.push('/profile/edit')
+    return
+  }
+
+  if (command === 'account-delete') {
+    router.push('/account/delete')
+    return
+  }
+
+  if (command === 'logout') {
+    userStore.setProfile(null)
+    authStore.logout()
+    ElMessage.success('已退出登录')
+    router.replace('/login')
+  }
+}
 </script>
 
 <style scoped>
@@ -194,7 +234,8 @@ const categories = [
 }
 
 .top-actions a,
-.notice-button {
+.notice-button,
+.user-menu-trigger {
   border: 0;
   background: transparent;
   color: inherit;
@@ -236,6 +277,29 @@ const categories = [
 
 .user-entry {
   gap: 9px;
+}
+
+.user-menu-trigger {
+  cursor: pointer;
+}
+
+.chevron {
+  color: #8b95a5;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.auth-link {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  line-height: 40px;
+}
+
+.auth-link.primary {
+  background: #eef5ff;
+  color: #1268ed !important;
+  font-weight: 700;
 }
 
 .avatar {

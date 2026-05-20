@@ -396,10 +396,14 @@ common (无依赖)
 - B1.12-B1.15 已按 API 规范完成 Sprint 1 后端用户接口：注册、登录、个人资料查询/更新、信用分查询、公开用户信息、个人主页、实名认证提交、账号注销、后台封禁、后台认证审核，并补充对应 DTO 与 Controller 测试。
 - B1.15 已补充最小 Spring Security 配置：注册、登录、公开用户信息、公开个人主页允许匿名访问；`/api/user/**` 需要登录；`/api/admin/**` 需要管理员角色；JWT 过滤器接入安全链。
 - B1.14 已补充 DTO JSON 兼容别名，便于当前前后端与接口文档字段命名过渡：`username/studentNo` 可映射到 `studentId`，`documentUrl/studentCardUrl` 可映射到 `studentCardImage`。
+- F1.8 已按 API 规范用户与认证模块补充 `src/api/user.ts`，集中封装注册、登录、个人资料查询/更新、信用分、公开用户信息、个人主页、实名认证提交、账号注销等用户接口。
+- F1.9 已将登录、注册页面从静态骨架接入真实后端接口：登录成功后写入 `authStore` 与本地 Token，注册表单按当前后端 DTO 提交 `studentId`、`password`、`nickname`、`realName`、`studentCardImage`。
+- F1.10 已按架构文档的用户页范围补充 `ProfileEdit.vue` 与 `AccountDeletion.vue`，实现资料编辑、账号注销确认、注销成功后清空登录态并跳转登录页。
+- F1.7/F1.10 已按架构文档“顶部头像区/头像菜单入口”补充登录态入口：未登录显示“登录 / 注册”，登录后头像下拉菜单提供“资料编辑 / 账号注销 / 退出登录”；`AdminLayout` 也补充后台退出登录入口。
 
 ## 注意事项
 
-- 管理员种子数据是系统启动后的第一个后台账号。当前 `schema.sql` 中管理员密码字段保存的是 BCrypt 哈希，不是明文密码；B1.8 已实现 `EncryptUtils`，后续登录逻辑需要统一使用 `EncryptUtils.matchesPassword` 做 BCrypt 校验。当前管理员种子账号的明文初始密码需要团队确认，并建议上线前强制修改。
+- 管理员种子数据已写入 `campushub-bootstrap/src/main/resources/db/schema.sql`，新数据库初始化后会默认创建后台账号：学号/登录名 `admin`，初始密码 `CampusHub123`，角色 `ADMIN`，账号状态正常。脚本中保存的是该密码的 BCrypt 哈希，不是明文密码；B1.8 已实现 `EncryptUtils`，登录逻辑统一使用 `EncryptUtils.matchesPassword` 做 BCrypt 校验。该账号仅用于开发、联调和演示环境，生产或正式部署前必须修改默认密码或禁用默认种子账号。
 - 2026-05-15 已通过 OSGeo 官方 PostgreSQL 15 PostGIS bundle 安装 PostGIS 3.6.2，并在 `secii_db` 中成功执行 `schema.sql`。当前数据库包含 14 张业务表，另有 PostGIS 自动表 `spatial_ref_sys`；`postgis` 与 `pg_trgm` 扩展均已启用。（管泽昊电脑已配置好环境）
 - B1.4 已引入 `campushub.cors`、`campushub.jwt`、`campushub.redisson` 三组配置前缀，B1.10 已在配置文件中覆盖开发环境默认值；生产环境仍必须通过环境变量设置强 JWT secret、数据库密码、Redis 密码与 CORS 白名单，禁止使用开发默认值。
 - B1.6 的 Java 枚举按 API 规范使用字符串语义值；当前 `schema.sql` 中部分字段仍是 `SMALLINT` 编码。后续实现实体、Mapper 或 TypeHandler 时，需要统一枚举与数据库数字编码之间的映射，避免接口值与落库值混用。
@@ -418,6 +422,9 @@ common (无依赖)
 - B1.15 的 Security 匿名放行规则应保持精确匹配，避免把 `/api/user/profile`、`/api/user/credit` 等需要登录的接口误放行。
 - F1.1 当前全量引入 Element Plus，`npm run build` 时 Vite 可能提示首包偏大；后续页面变多时，可以改成 Element Plus 按需导入来优化体积。
 - F1.2 已配置 Vite 开发代理：开发环境 `/api/**` 转发到 `.env.development` 中的 `VITE_API_PROXY_TARGET`，生产环境 `.env.production` 仅保留 `/api` 前缀，后续部署时需要由 Nginx、网关或同源后端负责转发。
+- F1.8-F1.10 当前以 B1.15 后端实际 DTO 和当前 `schema.sql` 为准：接口文档中的 `username/studentNo` 在前端统一映射为 `studentId`，资料编辑页暂只开放 `nickname` 与 `avatarUrl`，不展示无法持久化的 `email`、`phone`、`department` 等字段。
+- F1.9 注册页的学生证材料目前只支持本地选择图片并生成 `local-upload/{studentId}/{filename}` 占位路径；当前 Sprint 1 没有文件上传接口或对象存储服务，后续接入文件服务后需要替换为真实上传流程和真实文件 URL/object key。
+- F1.4/F1.9 已对登录接口的 `401` 做特殊处理：`POST /api/user/login` 返回 `401` 时展示后端业务信息（如“学号或密码错误”），其他受保护接口返回 `401` 时仍按 Token 失效处理并跳转登录页。
 - B1.6 当前枚举清单如下，后续若需求、API 规范或数据库编码调整，需要同步修改 Java 枚举、DTO、前端类型定义、数据库约束/映射逻辑：
   - `UserRole`：`USER`、`ADMIN`
   - `VerificationStatus`：`PENDING`、`APPROVED`、`REJECTED`
@@ -428,3 +435,26 @@ common (无依赖)
   - `PostSortType`：`latest`、`views`、`recommend`
   - `PostCategory`：`HELP`、`STUDY`、`TRADE`、`LOST_FOUND`、`TEAM_UP`、`OTHER`
   - `MessageType`：`ORDER`、`CHAT`、`NOTICE`、`SYSTEM`
+
+## 用户模块后续待做事项
+
+### user 模块内可以继续实现
+
+- 实名认证独立页面：当前实名认证材料主要在注册流程中提交，尚未实现登录后单独补交/重提认证页面；可先基于现有 `POST /api/user/verification/submit` 和 `VerificationStatusDTO`，在个人中心增加认证状态展示和重新提交入口。
+- 后台用户管理前端骨架：当前后端已有封禁和认证审核接口，但 `/admin/users` 仍是占位页；可以先实现待审核列表、审核通过/拒绝、用户封禁按钮等页面骨架，列表数据可先调用现有或后续补充的 user/admin 查询接口。
+- 忘记密码入口处理：登录页已有“忘记密码？”入口，但当前没有对应路由、页面或后端接口；目前可以先移除入口，或增加占位页并明确“暂未开放”，避免用户点击后进入 404。
+- 认证登录规则确认与实现：当前未审核用户可以登录，认证状态仅展示为 `PENDING`；如果产品决定“未审核不可登录”，可以在 `AuthService.login` 中直接按 `u_user.status` 拦截，并同步前端提示文案。
+- 管理员初始密码治理：当前 `schema.sql` 已提供默认管理员账号；目前可以继续补充开发说明、环境变量覆盖方案或首次登录强制改密设计，降低默认密码长期保留的风险。
+
+### 依赖其他模块或 schema 的后续实现
+
+- 文件上传：当前注册页和实名认证流程只保存 `local-upload/{studentId}/{filename}` 占位路径；依赖文件上传接口或对象存储服务后，才能将学生证材料替换为真实 URL/object key。
+- 用户资料扩展：当前 `u_user` 表不包含 `email`、`phone`、`department` 等字段，资料编辑页只开放 `nickname` 与 `avatarUrl`；依赖 schema 调整后，才能完整实现 API 文档中的资料 CRUD，并同步实体、DTO、Mapper、Service 和前端表单。
+- 实名认证字段对齐：当前 `t_user_verification` 以真实 schema 中的 `real_name`、`student_card_image`、`status` 为准；P2/P3 文档中的 `college`、`documentUrl/studentCardUrl`、`auth_type`、`verified_at` 等字段若要落地，依赖接口文档和数据库设计统一。
+- 信用分统计：当前 `CreditService` 只返回 `u_user.credit_score` 与等级，`completedRate`、`cancelledRate` 为占位；依赖 order/review 模块提供履约、取消、评价数据后计算。
+- 个人主页聚合：当前 `UserHomeDTO` 中发布数、接单数、评价数暂为 0；依赖 task/order/review 模块，补充历史发布、历史接单、收到评价等聚合数据。
+- 账号注销校验：当前账号注销只做逻辑删除；依赖 order 模块提供未完成订单查询能力后，存在未完成订单时拒绝注销并按 API 规范返回 422。
+- 后台封禁完善：当前后台封禁只设置 `u_user.status=2`，`days` 不持久化；依赖封禁到期字段、管理记录表或定时任务设计后，才能支持按天封禁和自动解封。
+- 实名认证通知：当前提交和审核只更新认证状态；依赖 message 模块或 `NotificationGateway` 后，实现提交后通知管理员、审核后通知用户。
+- 认证权限规则接入业务模块：如果产品要求“认证通过后才能发布任务/帖子或使用更多核心能力”，需要在 task/forum/order 等模块接入时补充权限校验。
+- 信用分事件机制：架构文档提到 `UserCreditEvent`，当前 user 模块尚未实现事件发布/监听；依赖 review/order 模块完成后，再设计信用分变更事件与幂等更新策略。

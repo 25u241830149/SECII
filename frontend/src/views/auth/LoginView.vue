@@ -47,15 +47,18 @@ import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores'
-import type { LoginRequest } from '@/types'
-
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
+interface LoginForm {
+  studentNo: string
+  password: string
+}
+
 const loading = ref(false)
 const rememberMe = ref(false)
-const form = reactive<LoginRequest>({
+const form = reactive<LoginForm>({
   studentNo: '',
   password: '',
 })
@@ -66,7 +69,10 @@ const getRedirectPath = () => {
 }
 
 const submit = async () => {
-  if (!form.studentNo || !form.password) {
+  const studentId = form.studentNo.trim()
+  const password = form.password
+
+  if (!studentId || !password) {
     ElMessage.warning('请填写学号和密码')
     return
   }
@@ -74,7 +80,7 @@ const submit = async () => {
   loading.value = true
 
   try {
-    await authStore.login(form)
+    await authStore.login({ studentId, password })
     ElMessage.success('登录成功')
     await router.push(getRedirectPath())
   } finally {

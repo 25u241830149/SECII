@@ -1,6 +1,6 @@
 package com.campushub.user.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public record UserProfileDTO(
         Long userId,
@@ -10,7 +10,7 @@ public record UserProfileDTO(
         String role,
         Integer creditScore,
         String verificationStatus,
-        LocalDateTime createTime,
-        LocalDateTime updateTime
+        OffsetDateTime createTime,
+        OffsetDateTime updateTime
 ) {
 }

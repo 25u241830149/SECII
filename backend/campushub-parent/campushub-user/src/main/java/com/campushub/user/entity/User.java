@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @TableName("u_user")
 public class User {
@@ -35,10 +35,10 @@ public class User {
     private Integer status;
 
     @TableField("create_time")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 
     @TableField("update_time")
-    private LocalDateTime updateTime;
+    private OffsetDateTime updateTime;
 
     @TableLogic
     @TableField("is_deleted")
@@ -108,19 +108,19 @@ public class User {
         this.status = status;
     }
 
-    public LocalDateTime getCreateTime() {
+    public OffsetDateTime getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(LocalDateTime createTime) {
+    public void setCreateTime(OffsetDateTime createTime) {
         this.createTime = createTime;
     }
 
-    public LocalDateTime getUpdateTime() {
+    public OffsetDateTime getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(LocalDateTime updateTime) {
+    public void setUpdateTime(OffsetDateTime updateTime) {
         this.updateTime = updateTime;
     }
 

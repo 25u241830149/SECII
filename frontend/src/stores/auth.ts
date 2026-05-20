@@ -1,10 +1,7 @@
 import { defineStore } from 'pinia'
 
-import {
-  TOKEN_STORAGE_KEY,
-  USER_STORAGE_KEY,
-  apiPost,
-} from '@/api/request'
+import { loginUser } from '@/api/user'
+import { TOKEN_STORAGE_KEY, USER_STORAGE_KEY } from '@/api/request'
 import type { AuthSession, LoginRequest, LoginResponseDTO, UserInfoDTO } from '@/types'
 
 interface AuthState {
@@ -69,7 +66,7 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async login(payload: LoginRequest) {
-      const result = await apiPost<LoginResponseDTO, LoginRequest>('/user/login', payload)
+      const result = await loginUser(payload)
 
       this.setSession({
         token: result.token,

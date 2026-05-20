@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 
-import { apiGet, apiPut } from '@/api/request'
-import type { EntityId, UserHomeDTO, UserProfileDTO } from '@/types'
+import { getUserHome, getUserProfile, updateUserProfile } from '@/api/user'
+import type { EntityId, UserHomeDTO, UserProfileDTO, UserProfileUpdateRequest } from '@/types'
 
 interface UserState {
   profile: UserProfileDTO | null
@@ -25,25 +25,21 @@ export const useUserStore = defineStore('user', {
       this.loading = true
 
       try {
-        this.profile = await apiGet<UserProfileDTO>('/user/profile', {
-          params: { userId },
-        })
+        this.profile = await getUserProfile(userId)
         return this.profile
       } finally {
         this.loading = false
       }
     },
 
-    async updateProfile(userId: EntityId, payload: Partial<UserProfileDTO>) {
-      const profile = await apiPut<UserProfileDTO, Partial<UserProfileDTO>>('/user/profile', payload, {
-        params: { userId },
-      })
+    async updateProfile(userId: EntityId, payload: UserProfileUpdateRequest) {
+      const profile = await updateUserProfile(userId, payload)
       this.profile = profile
       return profile
     },
 
     async fetchHome(userId: EntityId) {
-      this.home = await apiGet<UserHomeDTO>(`/user/${userId}/home`)
+      this.home = await getUserHome(userId)
       return this.home
     },
   },

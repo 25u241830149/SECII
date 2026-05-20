@@ -36,6 +36,10 @@ const shouldRedirectToLogin = () => {
   return !window.location.pathname.startsWith('/login')
 }
 
+const isLoginRequest = (url?: string) => {
+  return Boolean(url && /(^|\/)user\/login(?:$|\?)/.test(url))
+}
+
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 12_000,
@@ -62,7 +66,9 @@ request.interceptors.response.use(
     const body = error.response?.data
     const message = body?.message || error.message || '请求失败，请稍后重试'
 
-    if (status === 401) {
+    if (status === 401 && isLoginRequest(error.config?.url)) {
+      ElMessage.error(message)
+    } else if (status === 401) {
       clearStoredSession()
       ElMessage.warning('登录状态已过期，请重新登录')
 

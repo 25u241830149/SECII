@@ -71,13 +71,13 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'profile/edit',
         name: 'profile-edit',
-        component: PlaceholderView,
+        component: () => import('@/views/profile/ProfileEdit.vue'),
         meta: { title: '资料编辑', module: '用户模块', requiresAuth: true },
       },
       {
         path: 'account/delete',
         name: 'account-delete',
-        component: PlaceholderView,
+        component: () => import('@/views/profile/AccountDeletion.vue'),
         meta: { title: '注销账号', module: '用户模块', requiresAuth: true },
       },
       {

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @TableName("t_user_verification")
 public class UserVerification {
@@ -31,10 +31,10 @@ public class UserVerification {
     private String rejectReason;
 
     @TableField("create_time")
-    private LocalDateTime createTime;
+    private OffsetDateTime createTime;
 
     @TableField("update_time")
-    private LocalDateTime updateTime;
+    private OffsetDateTime updateTime;
 
     public Long getId() {
         return id;
@@ -92,19 +92,19 @@ public class UserVerification {
         this.rejectReason = rejectReason;
     }
 
-    public LocalDateTime getCreateTime() {
+    public OffsetDateTime getCreateTime() {
         return createTime;
     }
 
-    public void setCreateTime(LocalDateTime createTime) {
+    public void setCreateTime(OffsetDateTime createTime) {
         this.createTime = createTime;
     }
 
-    public LocalDateTime getUpdateTime() {
+    public OffsetDateTime getUpdateTime() {
         return updateTime;
     }
 
-    public void setUpdateTime(LocalDateTime updateTime) {
+    public void setUpdateTime(OffsetDateTime updateTime) {
         this.updateTime = updateTime;
     }
 }
