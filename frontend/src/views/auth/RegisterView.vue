@@ -15,6 +15,9 @@
       <el-form-item label="真实姓名">
         <el-input v-model="form.realName" size="large" placeholder="用于实名认证审核" />
       </el-form-item>
+      <el-form-item label="所属学院">
+        <el-input v-model="form.department" size="large" placeholder="例如：软件学院" />
+      </el-form-item>
       <el-form-item label="学生证材料">
         <el-upload
           v-model:file-list="studentCardFiles"
@@ -27,7 +30,7 @@
         >
           <el-button>选择学生证图片</el-button>
           <template #tip>
-            <span class="upload-tip">当前 Sprint 1 暂不上传文件，仅保存本地选择的材料文件名。</span>
+            <span class="upload-tip">支持 JPG、PNG、WebP，注册时会真实上传学生证材料。</span>
           </template>
         </el-upload>
       </el-form-item>
@@ -77,6 +80,7 @@ import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadFiles, UploadProps, UploadUserFile } from 'element-plus'
 import { useRouter } from 'vue-router'
 
+import { uploadStudentCard } from '@/api/upload'
 import { registerUser } from '@/api/user'
 
 const router = useRouter()
@@ -85,6 +89,7 @@ interface RegisterForm {
   studentNo: string
   nickname: string
   realName: string
+  department: string
   password: string
   confirmPassword: string
   agreementAccepted: boolean
@@ -100,6 +105,7 @@ const form = reactive<RegisterForm>({
   studentNo: '',
   nickname: '',
   realName: '',
+  department: '',
   password: '',
   confirmPassword: '',
   agreementAccepted: false,
@@ -137,18 +143,13 @@ const handleStudentCardRemove: UploadProps['onRemove'] = () => {
   selectedStudentCard.value = null
 }
 
-const buildLocalStudentCardKey = () => {
-  const safeStudentId = form.studentNo.trim().replace(/[^\w.-]/g, '_')
-  const safeFileName = selectedStudentCard.value?.name.replace(/[^\w.-]/g, '_') || 'student-card.jpg'
-  return `local-upload/${safeStudentId}/${safeFileName}`
-}
-
 const submit = async () => {
   const studentId = form.studentNo.trim()
   const nickname = form.nickname.trim()
   const realName = form.realName.trim()
+  const department = form.department.trim()
 
-  if (!studentId || !nickname || !realName || !form.password) {
+  if (!studentId || !nickname || !realName || !department || !form.password) {
     ElMessage.warning('请完整填写注册信息')
     return
   }
@@ -171,12 +172,14 @@ const submit = async () => {
   loading.value = true
 
   try {
+    const uploadResult = await uploadStudentCard(selectedStudentCard.value, studentId)
     await registerUser({
       studentId,
       password: form.password,
       nickname,
       realName,
-      studentCardImage: buildLocalStudentCardKey(),
+      department,
+      studentCardImage: uploadResult.fileUrl,
     })
     ElMessage.success('注册成功，请登录')
     await router.push('/login')

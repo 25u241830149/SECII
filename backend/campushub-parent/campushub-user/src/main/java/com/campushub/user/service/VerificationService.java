@@ -50,6 +50,8 @@ public class VerificationService {
 
         User update = new User();
         update.setId(request.userId());
+        update.setRealName(request.realName());
+        update.setDepartment(request.college());
         update.setStatus(USER_STATUS_PENDING_VERIFICATION);
         userMapper.updateById(update);
 

@@ -3,8 +3,8 @@
     <header class="page-header">
       <div>
         <p>个人资料</p>
-        <h1>编辑公开资料</h1>
-        <span>当前阶段支持修改昵称和头像地址，更多资料字段需等待后端 schema 扩展。</span>
+        <h1>编辑个人信息</h1>
+        <span>完善联系方式与头像资料；真实姓名和学院来自注册实名认证流程，不在此处修改。</span>
       </div>
       <RouterLink class="danger-link" to="/account/delete">注销账号</RouterLink>
     </header>
@@ -14,9 +14,9 @@
         <el-skeleton :rows="5" animated />
       </div>
 
-      <el-form v-else class="profile-form" :model="form" label-position="top" @submit.prevent>
+      <el-form v-else class="profile-form" :model="form" :rules="rules" label-position="top" @submit.prevent>
         <div class="avatar-preview">
-          <el-avatar :size="76" :src="form.avatarUrl || undefined">
+          <el-avatar :size="76" :src="previewAvatarUrl || undefined">
             {{ avatarFallback }}
           </el-avatar>
           <div>
@@ -25,12 +25,42 @@
           </div>
         </div>
 
-        <el-form-item label="昵称">
-          <el-input v-model="form.nickname" size="large" maxlength="30" show-word-limit />
-        </el-form-item>
+        <div class="form-grid">
+          <el-form-item label="昵称" prop="nickname">
+            <el-input v-model="form.nickname" size="large" maxlength="64" show-word-limit placeholder="请输入昵称" />
+          </el-form-item>
 
-        <el-form-item label="头像 URL">
-          <el-input v-model="form.avatarUrl" size="large" placeholder="https://example.com/avatar.png，可为空" />
+          <el-form-item label="邮箱" prop="email">
+            <el-input v-model="form.email" size="large" maxlength="128" placeholder="alice@example.com，可为空" />
+          </el-form-item>
+
+          <el-form-item label="手机号" prop="phone">
+            <el-input v-model="form.phone" size="large" maxlength="11" placeholder="13800000000，可为空" />
+          </el-form-item>
+
+          <el-form-item label="真实姓名">
+            <el-input :model-value="displayRealName" size="large" disabled placeholder="注册实名认证后显示" />
+          </el-form-item>
+
+          <el-form-item label="所属院系">
+            <el-input :model-value="displayDepartment" size="large" disabled placeholder="注册实名认证后显示" />
+          </el-form-item>
+        </div>
+
+        <el-form-item label="上传头像">
+          <el-upload
+            class="avatar-upload"
+            :auto-upload="false"
+            :limit="1"
+            accept="image/jpeg,image/png,image/webp"
+            :show-file-list="false"
+            :on-change="handleAvatarChange"
+          >
+            <el-button :loading="uploadingAvatar">选择并上传头像</el-button>
+            <template #tip>
+              <span class="upload-tip">支持 JPG、PNG、WebP，文件大小不超过 5MB。上传成功后会更新头像预览，点击“保存资料”后写入数据库。</span>
+            </template>
+          </el-upload>
         </el-form-item>
 
         <div class="readonly-grid">
@@ -52,7 +82,7 @@
           type="info"
           :closable="false"
           show-icon
-          title="邮箱、手机号、学院等字段当前后端暂未入库，本页不展示可编辑入口。"
+          title="公开资料会展示昵称、头像和院系；邮箱和手机号仅用于个人资料维护与平台管理。头像地址不在界面中展示。"
         />
 
         <div class="actions">
@@ -67,8 +97,11 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { FormRules, UploadFile, UploadProps } from 'element-plus'
 
+import { uploadAvatar } from '@/api/upload'
 import { useAuthStore, useUserStore } from '@/stores'
+import { resolveAssetUrl } from '@/utils/asset'
 import { userRoleLabels, verificationStatusLabels } from '@/types'
 
 const authStore = useAuthStore()
@@ -76,13 +109,54 @@ const userStore = useUserStore()
 
 const loading = ref(false)
 const saving = ref(false)
+const uploadingAvatar = ref(false)
 const form = reactive({
+  email: '',
+  phone: '',
   nickname: '',
   avatarUrl: '',
 })
 
+const rules: FormRules = {
+  nickname: [
+    { required: true, message: '昵称不能为空', trigger: 'blur' },
+    { max: 64, message: '昵称不能超过 64 个字符', trigger: 'blur' },
+  ],
+  email: [
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+    { max: 128, message: '邮箱不能超过 128 个字符', trigger: 'blur' },
+  ],
+  phone: [
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入 11 位中国大陆手机号', trigger: 'blur' },
+  ],
+  avatarUrl: [
+    {
+      validator: (_rule, value: string, callback) => {
+        if (!value || value.startsWith('/uploads/avatars/')) {
+          callback()
+          return
+        }
+        try {
+          const url = new URL(value)
+          if (url.protocol === 'http:' || url.protocol === 'https:') {
+            callback()
+            return
+          }
+        } catch {
+          // fall through
+        }
+        callback(new Error('头像 URL 格式不正确'))
+      },
+      trigger: 'blur',
+    },
+  ],
+}
+
 const currentUserId = computed(() => authStore.user?.userId)
 const avatarFallback = computed(() => (form.nickname || authStore.user?.nickname || 'C').slice(0, 1))
+const previewAvatarUrl = computed(() => resolveAssetUrl(form.avatarUrl))
+const displayRealName = computed(() => userStore.profile?.realName || authStore.user?.realName || '')
+const displayDepartment = computed(() => userStore.profile?.department || authStore.user?.department || '')
 const roleLabel = computed(() => {
   const role = userStore.profile?.role || authStore.user?.role
   return role ? userRoleLabels[role] : '-'
@@ -94,8 +168,35 @@ const verificationLabel = computed(() => {
 
 const syncForm = () => {
   const profile = userStore.profile
+  form.email = profile?.email || authStore.user?.email || ''
+  form.phone = profile?.phone || authStore.user?.phone || ''
   form.nickname = profile?.nickname || authStore.user?.nickname || ''
   form.avatarUrl = profile?.avatarUrl || authStore.user?.avatarUrl || ''
+}
+
+const isAllowedAvatarType = (file: File) => ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+
+const handleAvatarChange: UploadProps['onChange'] = async (uploadFile: UploadFile) => {
+  const rawFile = uploadFile.raw
+  if (!rawFile) return
+
+  if (!isAllowedAvatarType(rawFile)) {
+    ElMessage.warning('头像仅支持 JPG、PNG、WebP 图片')
+    return
+  }
+  if (rawFile.size > 5 * 1024 * 1024) {
+    ElMessage.warning('头像图片不能超过 5MB')
+    return
+  }
+
+  uploadingAvatar.value = true
+  try {
+    const result = await uploadAvatar(rawFile)
+    form.avatarUrl = result.fileUrl
+    ElMessage.success('头像上传成功，请保存资料')
+  } finally {
+    uploadingAvatar.value = false
+  }
 }
 
 onMounted(async () => {
@@ -124,6 +225,8 @@ const saveProfile = async () => {
   }
 
   const nickname = form.nickname.trim()
+  const email = form.email.trim()
+  const phone = form.phone.trim()
   const avatarUrl = form.avatarUrl.trim()
 
   if (!nickname) {
@@ -131,11 +234,36 @@ const saveProfile = async () => {
     return
   }
 
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    ElMessage.warning('邮箱格式不正确')
+    return
+  }
+
+  if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+    ElMessage.warning('请输入 11 位中国大陆手机号')
+    return
+  }
+
+  if (avatarUrl && !avatarUrl.startsWith('/uploads/avatars/')) {
+    try {
+      const url = new URL(avatarUrl)
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        ElMessage.warning('头像 URL 格式不正确')
+        return
+      }
+    } catch {
+      ElMessage.warning('头像 URL 格式不正确')
+      return
+    }
+  }
+
   saving.value = true
   try {
     const profile = await userStore.updateProfile(currentUserId.value, {
+      email: email || undefined,
+      phone: phone || undefined,
       nickname,
-      avatarUrl,
+      avatarUrl: avatarUrl || undefined,
     })
 
     if (authStore.user) {
@@ -143,7 +271,11 @@ const saveProfile = async () => {
         token: authStore.token,
         user: {
           ...authStore.user,
+          email: profile.email,
+          phone: profile.phone,
           nickname: profile.nickname,
+          realName: authStore.user.realName,
+          department: authStore.user.department,
           avatarUrl: profile.avatarUrl,
           creditScore: profile.creditScore,
           verificationStatus: profile.verificationStatus,
@@ -217,6 +349,24 @@ const saveProfile = async () => {
   gap: 8px;
 }
 
+.avatar-upload {
+  width: 100%;
+}
+
+.upload-tip {
+  display: block;
+  margin-top: 6px;
+  color: #8b95a5;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
 .avatar-preview {
   display: flex;
   align-items: center;
@@ -281,6 +431,10 @@ const saveProfile = async () => {
   }
 
   .readonly-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid {
     grid-template-columns: 1fr;
   }
 }

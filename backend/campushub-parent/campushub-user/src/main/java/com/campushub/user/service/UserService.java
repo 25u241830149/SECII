@@ -12,6 +12,8 @@ import com.campushub.user.entity.User;
 import com.campushub.user.entity.UserVerification;
 import com.campushub.user.mapper.UserMapper;
 import com.campushub.user.mapper.UserVerificationMapper;
+import java.net.URI;
+import java.net.URISyntaxException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +21,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private static final int USER_STATUS_BANNED = 2;
+    private static final int MAX_NICKNAME_LENGTH = 64;
+    private static final int MAX_EMAIL_LENGTH = 128;
+    private static final int MAX_PHONE_LENGTH = 32;
+    private static final int MAX_AVATAR_URL_LENGTH = 255;
+    private static final String EMAIL_PATTERN = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
+    private static final String PHONE_PATTERN = "^1[3-9]\\d{9}$";
 
     private final UserMapper userMapper;
     private final UserVerificationMapper verificationMapper;
@@ -62,12 +70,72 @@ public class UserService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "资料信息不能为空");
         }
 
+        String nickname = requiredTrim(request.nickname(), "昵称不能为空");
+        String email = optionalTrim(request.email());
+        String phone = optionalTrim(request.phone());
+        String avatarUrl = optionalTrim(request.avatarUrl());
+
+        validateMaxLength(nickname, MAX_NICKNAME_LENGTH, "昵称不能超过 64 个字符");
+        validateMaxLength(email, MAX_EMAIL_LENGTH, "邮箱不能超过 128 个字符");
+        validateMaxLength(phone, MAX_PHONE_LENGTH, "手机号不能超过 32 个字符");
+        validateMaxLength(avatarUrl, MAX_AVATAR_URL_LENGTH, "头像地址不能超过 255 个字符");
+
+        if (email != null && !email.matches(EMAIL_PATTERN)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "邮箱格式不正确");
+        }
+        if (phone != null && !phone.matches(PHONE_PATTERN)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "手机号格式不正确");
+        }
+        validateAvatarUrl(avatarUrl);
+
         User update = new User();
         update.setId(userId);
-        update.setNickname(request.nickname());
-        update.setAvatarUrl(request.avatarUrl());
+        update.setEmail(email);
+        update.setPhone(phone);
+        update.setNickname(nickname);
+        update.setAvatarUrl(avatarUrl);
         userMapper.updateById(update);
         return getProfile(userId);
+    }
+
+    private static String requiredTrim(String value, String message) {
+        String trimmed = optionalTrim(value);
+        if (trimmed == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, message);
+        }
+        return trimmed;
+    }
+
+    private static String optionalTrim(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private static void validateMaxLength(String value, int maxLength, String message) {
+        if (value != null && value.length() > maxLength) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, message);
+        }
+    }
+
+    private static void validateAvatarUrl(String avatarUrl) {
+        if (avatarUrl == null) {
+            return;
+        }
+        if (avatarUrl.startsWith("/uploads/avatars/")) {
+            return;
+        }
+        try {
+            URI uri = new URI(avatarUrl);
+            String scheme = uri.getScheme();
+            if (("http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme)) && uri.getHost() != null) {
+                return;
+            }
+        } catch (URISyntaxException ignored) {
+            // fall through to business exception
+        }
+        throw new BusinessException(ErrorCode.BAD_REQUEST, "头像地址格式不正确");
     }
 
     @Transactional

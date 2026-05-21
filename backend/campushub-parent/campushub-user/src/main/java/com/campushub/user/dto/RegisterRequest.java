@@ -8,6 +8,7 @@ public record RegisterRequest(
         String password,
         String nickname,
         String realName,
+        String department,
         @JsonAlias({"documentUrl", "studentCardUrl"})
         String studentCardImage
 ) {

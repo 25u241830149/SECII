@@ -19,8 +19,20 @@ public class User {
     @TableField("password")
     private String password;
 
+    @TableField("email")
+    private String email;
+
+    @TableField("phone")
+    private String phone;
+
     @TableField("nickname")
     private String nickname;
+
+    @TableField("real_name")
+    private String realName;
+
+    @TableField("department")
+    private String department;
 
     @TableField("avatar_url")
     private String avatarUrl;
@@ -68,12 +80,44 @@ public class User {
         this.password = password;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
     public String getNickname() {
         return nickname;
     }
 
     public void setNickname(String nickname) {
         this.nickname = nickname;
+    }
+
+    public String getRealName() {
+        return realName;
+    }
+
+    public void setRealName(String realName) {
+        this.realName = realName;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
     }
 
     public String getAvatarUrl() {

@@ -49,6 +49,8 @@ public class AuthService {
         user.setStudentId(request.studentId());
         user.setPassword(EncryptUtils.encryptPassword(request.password()));
         user.setNickname(request.nickname());
+        user.setRealName(request.realName());
+        user.setDepartment(request.department());
         user.setRole(ROLE_USER);
         user.setCreditScore(DEFAULT_CREDIT_SCORE);
         user.setStatus(USER_STATUS_PENDING_VERIFICATION);
@@ -85,6 +87,7 @@ public class AuthService {
                 || isBlank(request.password())
                 || isBlank(request.nickname())
                 || isBlank(request.realName())
+                || isBlank(request.department())
                 || isBlank(request.studentCardImage())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "注册信息不完整");
         }

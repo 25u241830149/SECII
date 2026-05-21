@@ -11,6 +11,7 @@ export interface RegisterRequest {
   password: string
   nickname: string
   realName: string
+  department?: string
   studentCardImage: string
 }
 
@@ -22,7 +23,11 @@ export interface LoginResponseDTO {
 export interface UserInfoDTO {
   userId: EntityId
   studentId: string
+  email?: string
+  phone?: string
   nickname: string
+  realName?: string
+  department?: string
   avatarUrl?: string
   role: UserRole
   creditScore: number
@@ -35,8 +40,17 @@ export interface UserProfileDTO extends UserInfoDTO {
 }
 
 export interface UserProfileUpdateRequest {
+  email?: string
+  phone?: string
   nickname: string
   avatarUrl?: string
+}
+
+export interface UploadResultDTO {
+  fileUrl: string
+  originalFilename?: string
+  contentType: string
+  size: number
 }
 
 export interface UserPublicDTO {

@@ -392,14 +392,16 @@ common (无依赖)
 - B1.6 已实现正式 `ApiResponse` / `PageResponse`，并将 B1.5 中 `GlobalExceptionHandler` 临时使用的内部 `ErrorBody` 替换为 `ApiResponse`，统一响应模型不再重复。
 - B1.10 已在 `application.yml` / `application-dev.yml` 中显式配置 JWT、Redis/Redisson、CORS、敏感词过滤、数据源、MyBatis-Plus 与 Springdoc 基础项。
 - B1.11-B1.15 已按架构文档 user 模块分层完成 `controller`、`service`、`mapper`、`entity`、`dto` 的后端骨架与核心实现，对应 `AuthController`、`UserController`、`AdminUserController`、`AuthService`、`UserService`、`CreditService`、`VerificationService`。
-- B1.11 数据层已按当前 `schema.sql` 完成 `u_user` 与 `t_user_verification` 实体、Mapper 与 XML；由于当前数据库脚本与 P2/P3 文档中的部分字段存在差异，本阶段以真实数据库脚本为准，不额外新增 `email`、`phone`、`department`、封禁到期时间等字段。
-- B1.12-B1.15 已按 API 规范完成 Sprint 1 后端用户接口：注册、登录、个人资料查询/更新、信用分查询、公开用户信息、个人主页、实名认证提交、账号注销、后台封禁、后台认证审核，并补充对应 DTO 与 Controller 测试。
+- B1.11 数据层已按当前 `schema.sql` 完成 `u_user` 与 `t_user_verification` 实体、Mapper 与 XML；当前 `u_user` 已落地 `email`、`phone`、`real_name`、`department`、`avatar_url` 字段，并与 user 模块 DTO、Service、Mapper 映射保持一致；封禁到期时间等扩展字段仍未落库。
+- B1.12-B1.15 已按 API 规范完成 Sprint 1 后端用户接口：注册、登录、个人资料查询/更新、信用分查询、公开用户信息、个人主页、实名认证提交、账号注销、后台封禁、后台认证审核，并补充对应 DTO 与 Controller 测试；其中注册会写入 `realName`、`department` 与学生证材料，资料更新当前仅允许维护 `nickname`、`email`、`phone`、`avatarUrl`。
 - B1.15 已补充最小 Spring Security 配置：注册、登录、公开用户信息、公开个人主页允许匿名访问；`/api/user/**` 需要登录；`/api/admin/**` 需要管理员角色；JWT 过滤器接入安全链。
+- B1.15 已补充文件上传与静态资源访问链路：新增 `POST /api/upload/avatar`、`POST /api/upload/student-card`，上传文件落盘到本地 `uploads/` 目录；`/uploads/**` 由 `WebMvcConfig` 暴露，Spring Security 已放行学生证上传与静态资源访问，头像上传需登录。
 - B1.14 已补充 DTO JSON 兼容别名，便于当前前后端与接口文档字段命名过渡：`username/studentNo` 可映射到 `studentId`，`documentUrl/studentCardUrl` 可映射到 `studentCardImage`。
 - F1.8 已按 API 规范用户与认证模块补充 `src/api/user.ts`，集中封装注册、登录、个人资料查询/更新、信用分、公开用户信息、个人主页、实名认证提交、账号注销等用户接口。
-- F1.9 已将登录、注册页面从静态骨架接入真实后端接口：登录成功后写入 `authStore` 与本地 Token，注册表单按当前后端 DTO 提交 `studentId`、`password`、`nickname`、`realName`、`studentCardImage`。
-- F1.10 已按架构文档的用户页范围补充 `ProfileEdit.vue` 与 `AccountDeletion.vue`，实现资料编辑、账号注销确认、注销成功后清空登录态并跳转登录页。
+- F1.9 已将登录、注册页面从静态骨架接入真实后端接口：登录成功后写入 `authStore` 与本地 Token，注册表单按当前后端 DTO 提交 `studentId`、`password`、`nickname`、`realName`、`department`、`studentCardImage`；学生证材料改为注册前真实上传，前端通过 `src/api/upload.ts` 获取后端返回的文件 URL。
+- F1.10 已按架构文档的用户页范围补充 `ProfileEdit.vue` 与 `AccountDeletion.vue`，实现资料编辑、账号注销确认、注销成功后清空登录态并跳转登录页；资料编辑页当前支持头像真实上传、预览与保存，真实姓名和所属院系改为只读展示，由注册/实名认证流程维护。
 - F1.7/F1.10 已按架构文档“顶部头像区/头像菜单入口”补充登录态入口：未登录显示“登录 / 注册”，登录后头像下拉菜单提供“资料编辑 / 账号注销 / 退出登录”；`AdminLayout` 也补充后台退出登录入口。
+- F1.7/F1.10/F3.10 已补充个人中心结构化路由与展示骨架：`/profile` 改为 `ProfileLayout` 嵌套路由，已接入个人主页、资料编辑、收藏、发单、接单、信用页与注销页；顶部头像、个人主页头像、资料编辑页头像预览统一走上传资源地址解析逻辑。
 
 ## 注意事项
 
@@ -412,18 +414,19 @@ common (无依赖)
 - B1.9 的 `SensitiveWordFilter` 是可配置骨架，当前采用大小写归一化后的精确包含匹配；后续 B2/B4 接入任务、帖子、评论、评价创建入口时，需要主动调用 `validate` 或 `filter`，若词库规模变大再替换为 Trie/AC 自动机或数据库词库加载。
 - B1.10 的开发环境配置中 `spring.sql.init.mode` 为 `never`，避免启动时误重复执行建表脚本；新环境初始化数据库时仍需手动执行 `campushub-bootstrap/src/main/resources/db/schema.sql`，或临时调整 SQL 初始化策略。
 - B1.11-B1.15 已通过 `mvn -q -pl campushub-user -am test` 与 `mvn -q clean compile`；若后续修改 user 模块或 common 安全配置，至少需要重新执行这两条命令。
-- B1.12 及以后服务层如果要完整支持接口文档中的 `email`、`phone`、`department`、注册 `realName` 入库，需要先发起数据库 schema 调整任务，不能只改 DTO 或 Controller。
+- B1.12 及以后服务层当前已经支持 `email`、`phone`、`department`、注册 `realName` 入库；后续若继续扩展用户资料字段，必须同步更新 `schema.sql`、实体、Mapper XML、DTO、前端类型与表单校验，不能只改 Controller 或页面。
 - B1.12 当前 `studentId` 承担接口文档中 `username/studentNo` 的登录身份含义；后续如果产品决定同时支持用户名、邮箱或手机号登录，需要统一修改 API 文档、数据库唯一索引、注册登录校验和前端表单。
 - B1.13 当前信用分接口只从 `u_user.credit_score` 返回信用分与等级，`completedRate` 与 `cancelledRate` 暂为占位；后续需等 order/review 模块提供订单履约、取消和评价数据后再计算。
-- B1.15 当前个人主页接口只返回用户基础资料、信用等级和 0 值统计占位；后续需等 task/order/review 模块完成后接入历史发布、历史接单、评价等聚合数据。
+- B1.15 当前个人主页接口已返回基础资料、头像、信用等级和 0 值统计占位；前端 `ProfileHome.vue` 已完成个人主页 UI 与资料展示骨架，并在后端聚合未完成时使用前端 mock 数字兜底。后续仍需等 task/order/review 模块完成后接入真实发布数、接单数、评价数等聚合数据。
 - B1.15 当前账号注销只做逻辑删除；API 规范要求“存在未完成订单不可注销”，后续需等 order 模块提供查询能力后补齐校验，并在失败时返回 422。
 - B1.15 当前后台封禁只设置 `u_user.status=2`，请求中的 `days` 因当前表结构没有封禁到期字段而未持久化；如需按天自动解封，需要后续补封禁到期字段、管理记录表或定时任务。
 - B1.15 当前实名认证提交和审核只更新数据库状态；后续需等 message 模块或 `NotificationGateway` 接入后，补充“提交后通知管理员”和“审核后通知用户”。
 - B1.15 的 Security 匿名放行规则应保持精确匹配，避免把 `/api/user/profile`、`/api/user/credit` 等需要登录的接口误放行。
 - F1.1 当前全量引入 Element Plus，`npm run build` 时 Vite 可能提示首包偏大；后续页面变多时，可以改成 Element Plus 按需导入来优化体积。
-- F1.2 已配置 Vite 开发代理：开发环境 `/api/**` 转发到 `.env.development` 中的 `VITE_API_PROXY_TARGET`，生产环境 `.env.production` 仅保留 `/api` 前缀，后续部署时需要由 Nginx、网关或同源后端负责转发。
-- F1.8-F1.10 当前以 B1.15 后端实际 DTO 和当前 `schema.sql` 为准：接口文档中的 `username/studentNo` 在前端统一映射为 `studentId`，资料编辑页暂只开放 `nickname` 与 `avatarUrl`，不展示无法持久化的 `email`、`phone`、`department` 等字段。
-- F1.9 注册页的学生证材料目前只支持本地选择图片并生成 `local-upload/{studentId}/{filename}` 占位路径；当前 Sprint 1 没有文件上传接口或对象存储服务，后续接入文件服务后需要替换为真实上传流程和真实文件 URL/object key。
+- F1.2 已配置 Vite 开发代理：开发环境 `/api/**` 与 `/uploads/**` 都会转发到 `.env.development` 中的 `VITE_API_PROXY_TARGET`，生产环境 `.env.production` 仍需由 Nginx、网关或同源后端负责接口与静态资源转发；如果代理配置变更后前端 dev server 未重启，头像/学生证图片可能无法显示。
+- F1.8-F1.10 当前以 B1.15 后端实际 DTO 和当前 `schema.sql` 为准：接口文档中的 `username/studentNo` 在前端统一映射为 `studentId`；资料编辑页当前只开放 `nickname`、`avatarUrl`、`email`、`phone`，其中头像改为真实上传；`realName`、`department` 仅展示，不在资料页直接编辑。
+- F1.9 注册页的学生证材料已改为真实上传：前端先调用 `/api/upload/student-card` 获取 `/uploads/student-cards/{studentId}/...` 文件 URL，再随注册请求提交；后续若接入对象存储，只需替换上传服务与返回 URL/object key，不必回退到 `local-upload/...` 占位路径。
+- F1.10 当前头像展示链路依赖后端 `/uploads/**` 静态资源映射、前端 `/uploads` 代理与 `resolveAssetUrl` 统一地址解析；如出现“数据库已有路径但前端不显示头像”，优先检查 dev server 是否重启、资源请求是否返回 200、以及登录态/资料态中的 `avatarUrl` 是否已刷新。
 - F1.4/F1.9 已对登录接口的 `401` 做特殊处理：`POST /api/user/login` 返回 `401` 时展示后端业务信息（如“学号或密码错误”），其他受保护接口返回 `401` 时仍按 Token 失效处理并跳转登录页。
 - B1.6 当前枚举清单如下，后续若需求、API 规范或数据库编码调整，需要同步修改 Java 枚举、DTO、前端类型定义、数据库约束/映射逻辑：
   - `UserRole`：`USER`、`ADMIN`
@@ -448,8 +451,8 @@ common (无依赖)
 
 ### 依赖其他模块或 schema 的后续实现
 
-- 文件上传：当前注册页和实名认证流程只保存 `local-upload/{studentId}/{filename}` 占位路径；依赖文件上传接口或对象存储服务后，才能将学生证材料替换为真实 URL/object key。
-- 用户资料扩展：当前 `u_user` 表不包含 `email`、`phone`、`department` 等字段，资料编辑页只开放 `nickname` 与 `avatarUrl`；依赖 schema 调整后，才能完整实现 API 文档中的资料 CRUD，并同步实体、DTO、Mapper、Service 和前端表单。
+- 文件上传：当前头像与学生证图片上传接口、后端本地落盘、`/uploads/**` 静态资源映射、前端 `/uploads` 代理均已落地；后续若接入对象存储或 CDN，需要替换 `UploadService` 的存储实现与 URL 返回策略，并同步调整部署文档。
+- 用户资料扩展：`u_user` 表已补充 `email`、`phone`、`real_name`、`department` 字段；资料编辑页当前仅维护 `nickname`、`avatarUrl`、`email`、`phone`，`realName`、`department` 由注册/实名认证流程维护。后续如需联系方式唯一性校验、更多公开资料字段或头像审核策略，需要补充唯一索引、校验规则与对应 UI。
 - 实名认证字段对齐：当前 `t_user_verification` 以真实 schema 中的 `real_name`、`student_card_image`、`status` 为准；P2/P3 文档中的 `college`、`documentUrl/studentCardUrl`、`auth_type`、`verified_at` 等字段若要落地，依赖接口文档和数据库设计统一。
 - 信用分统计：当前 `CreditService` 只返回 `u_user.credit_score` 与等级，`completedRate`、`cancelledRate` 为占位；依赖 order/review 模块提供履约、取消、评价数据后计算。
 - 个人主页聚合：当前 `UserHomeDTO` 中发布数、接单数、评价数暂为 0；依赖 task/order/review 模块，补充历史发布、历史接单、收到评价等聚合数据。

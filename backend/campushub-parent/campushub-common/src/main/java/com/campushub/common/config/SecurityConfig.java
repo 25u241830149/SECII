@@ -31,12 +31,15 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/user/register",
                                 "/api/user/login",
+                                "/api/upload/student-card",
+                                "/uploads/**",
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/upload/avatar").authenticated()
                         .requestMatchers("/api/user/**").authenticated()
                         .anyRequest().permitAll()
                 )

@@ -53,8 +53,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'orders',
         name: 'orders',
-        component: PlaceholderView,
-        meta: { title: '我的订单', module: '订单模块', requiresAuth: true },
+        redirect: '/profile/orders',
       },
       {
         path: 'messages',
@@ -64,21 +63,57 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'profile',
-        name: 'profile',
-        component: PlaceholderView,
-        meta: { title: '个人中心', module: '用户模块', requiresAuth: true },
-      },
-      {
-        path: 'profile/edit',
-        name: 'profile-edit',
-        component: () => import('@/views/profile/ProfileEdit.vue'),
-        meta: { title: '资料编辑', module: '用户模块', requiresAuth: true },
+        component: () => import('@/layouts/ProfileLayout.vue'),
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: '',
+            name: 'profile',
+            component: () => import('@/views/profile/ProfileHome.vue'),
+            meta: { title: '个人主页', module: '用户模块', requiresAuth: true },
+          },
+          {
+            path: 'favorites',
+            name: 'profile-favorites',
+            component: () => import('@/views/profile/ProfileFavorites.vue'),
+            meta: { title: '我的收藏', module: '用户模块', requiresAuth: true },
+          },
+          {
+            path: 'published',
+            name: 'profile-published',
+            component: () => import('@/views/profile/ProfilePublished.vue'),
+            meta: { title: '我的发单', module: '用户模块', requiresAuth: true },
+          },
+          {
+            path: 'orders',
+            name: 'profile-orders',
+            component: () => import('@/views/profile/ProfileOrders.vue'),
+            meta: { title: '我的接单', module: '用户模块', requiresAuth: true },
+          },
+          {
+            path: 'credit',
+            name: 'profile-credit',
+            component: () => import('@/views/profile/ProfileCredit.vue'),
+            meta: { title: '信用分与等级', module: '用户模块', requiresAuth: true },
+          },
+          {
+            path: 'edit',
+            name: 'profile-edit',
+            component: () => import('@/views/profile/ProfileEdit.vue'),
+            meta: { title: '资料编辑', module: '用户模块', requiresAuth: true },
+          },
+          {
+            path: 'delete',
+            name: 'profile-delete',
+            component: () => import('@/views/profile/AccountDeletion.vue'),
+            meta: { title: '账号注销', module: '用户模块', requiresAuth: true },
+          },
+        ],
       },
       {
         path: 'account/delete',
         name: 'account-delete',
-        component: () => import('@/views/profile/AccountDeletion.vue'),
-        meta: { title: '注销账号', module: '用户模块', requiresAuth: true },
+        redirect: '/profile/delete',
       },
       {
         path: 'reports/create',

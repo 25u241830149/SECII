@@ -66,6 +66,11 @@ campushub:
     connection-pool-size: 16
     connection-minimum-idle-size: 4
     timeout: 3000
+  file:
+    upload-base-path: ${CAMPUSHUB_UPLOAD_BASE_PATH:./uploads}
+    public-prefix: /uploads
+    avatar-max-size: 5242880
+    student-card-max-size: 5242880
   audit:
     sensitive-word:
       enabled: true

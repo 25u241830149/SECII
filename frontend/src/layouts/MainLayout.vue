@@ -1,5 +1,5 @@
 <template>
-  <div class="main-shell" :class="{ 'is-collapsed': appStore.sidebarCollapsed }">
+  <div class="main-shell">
     <header class="topbar">
       <RouterLink class="brand" to="/">
         <span class="brand-logo">C</span>
@@ -26,13 +26,15 @@
           @command="handleUserCommand"
         >
           <button type="button" class="user-entry user-menu-trigger">
-            <span class="avatar"></span>
+            <el-avatar :size="38" :src="headerAvatar || undefined" class="avatar">
+              {{ headerAvatarFallback }}
+            </el-avatar>
             <span>{{ authStore.user?.nickname || '个人中心' }}</span>
             <span class="chevron">⌄</span>
           </button>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="profile-edit">资料编辑</el-dropdown-item>
+              <el-dropdown-item command="profile-edit">个人主页</el-dropdown-item>
               <el-dropdown-item command="account-delete">账号注销</el-dropdown-item>
               <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
             </el-dropdown-menu>
@@ -42,8 +44,8 @@
       </nav>
     </header>
 
-    <div class="workspace">
-      <aside class="sidebar">
+    <div class="workspace" :class="{ 'profile-workspace': isProfileArea }">
+      <aside v-if="!isProfileArea" class="sidebar">
         <section class="sidebar-section">
           <div class="section-title">
             <h2>需求分类</h2>
@@ -85,17 +87,17 @@
 
         <section class="sidebar-section stats">
           <div>
-            <span class="stat-dot blue">↗</span>
+            <span class="stat-dot blue">+</span>
             <b>28</b>
             <small>今日新增</small>
           </div>
           <div>
-            <span class="stat-dot green">◔</span>
+            <span class="stat-dot green">✓</span>
             <b>16</b>
             <small>进行中</small>
           </div>
           <div>
-            <span class="stat-dot orange">✓</span>
+            <span class="stat-dot orange">★</span>
             <b>342</b>
             <small>已完成</small>
           </div>
@@ -110,33 +112,40 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { useAppStore, useAuthStore, useUserStore } from '@/stores'
+import { resolveAssetUrl } from '@/utils/asset'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 const router = useRouter()
+const route = useRoute()
+
+const isProfileArea = computed(() => route.path.startsWith('/profile'))
+const headerAvatar = computed(() => resolveAssetUrl(userStore.profile?.avatarUrl || authStore.user?.avatarUrl || ''))
+const headerAvatarFallback = computed(() => (authStore.user?.nickname || '个').slice(0, 1).toUpperCase())
 
 const categories = [
   { value: 'ALL' as const, label: '全部需求', icon: '▦' },
-  { value: 'EXPRESS' as const, label: '快递代取', icon: '□' },
-  { value: 'STUDY' as const, label: '学习辅导', icon: '▥' },
-  { value: 'SECOND_HAND' as const, label: '二手交易', icon: '◇' },
-  { value: 'TEAM_UP' as const, label: '活动组队', icon: '●' },
-  { value: 'OTHER' as const, label: '其他', icon: '○' },
+  { value: 'EXPRESS' as const, label: '快递代取', icon: '▣' },
+  { value: 'STUDY' as const, label: '学习辅导', icon: '▤' },
+  { value: 'SECOND_HAND' as const, label: '二手交易', icon: '●' },
+  { value: 'TEAM_UP' as const, label: '活动组队', icon: '◆' },
+  { value: 'OTHER' as const, label: '其他', icon: '◇' },
 ]
 
 const handleUserCommand = (command: string | number | object) => {
   if (command === 'profile-edit') {
-    router.push('/profile/edit')
+    router.push('/profile')
     return
   }
 
   if (command === 'account-delete') {
-    router.push('/account/delete')
+    router.push('/profile/delete')
     return
   }
 
@@ -303,11 +312,10 @@ const handleUserCommand = (command: string | number | object) => {
 }
 
 .avatar {
-  width: 38px;
-  height: 38px;
   border: 3px solid #edf4ff;
-  border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #e8f1ff, #b8cffd 42%, #354f87 43%, #172033 100%);
+  color: #fff;
+  font-weight: 700;
 }
 
 .workspace {
@@ -315,6 +323,10 @@ const handleUserCommand = (command: string | number | object) => {
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 22px;
   padding: 22px 28px 28px;
+}
+
+.workspace.profile-workspace {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .sidebar {
@@ -376,7 +388,7 @@ const handleUserCommand = (command: string | number | object) => {
   height: 24px;
   place-items: center;
   color: #1268ed;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .filter-row {

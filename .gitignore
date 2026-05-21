@@ -739,6 +739,5 @@ FodyWeavers.xsd
 # Local workspace
 self/
 
-解释
-. r u n /  
- 
+# upload files
+uploads/

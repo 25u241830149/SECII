@@ -6,7 +6,11 @@
         <id property="id" column="id"/>
         <result property="studentId" column="student_id"/>
         <result property="password" column="password"/>
+        <result property="email" column="email"/>
+        <result property="phone" column="phone"/>
         <result property="nickname" column="nickname"/>
+        <result property="realName" column="real_name"/>
+        <result property="department" column="department"/>
         <result property="avatarUrl" column="avatar_url"/>
         <result property="role" column="role"/>
         <result property="creditScore" column="credit_score"/>
@@ -20,7 +24,11 @@
         id,
         student_id,
         password,
+        email,
+        phone,
         nickname,
+        real_name,
+        department,
         avatar_url,
         role,
         credit_score,

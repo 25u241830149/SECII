@@ -16,7 +16,11 @@ final class UserDtoAssembler {
         return new UserInfoDTO(
                 user.getId(),
                 user.getStudentId(),
+                user.getEmail(),
+                user.getPhone(),
                 user.getNickname(),
+                user.getRealName(),
+                user.getDepartment(),
                 user.getAvatarUrl(),
                 roleName(user.getRole()),
                 user.getCreditScore(),
@@ -28,7 +32,11 @@ final class UserDtoAssembler {
         return new UserProfileDTO(
                 user.getId(),
                 user.getStudentId(),
+                user.getEmail(),
+                user.getPhone(),
                 user.getNickname(),
+                user.getRealName(),
+                user.getDepartment(),
                 user.getAvatarUrl(),
                 roleName(user.getRole()),
                 user.getCreditScore(),
@@ -43,7 +51,7 @@ final class UserDtoAssembler {
                 user.getId(),
                 user.getNickname(),
                 user.getAvatarUrl(),
-                null,
+                user.getDepartment(),
                 user.getCreditScore(),
                 CreditService.creditLevel(user.getCreditScore() == null ? 0 : user.getCreditScore())
         );

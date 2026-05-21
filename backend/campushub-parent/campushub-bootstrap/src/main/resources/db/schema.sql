@@ -8,7 +8,11 @@ CREATE TABLE IF NOT EXISTS u_user (
     id BIGSERIAL PRIMARY KEY,
     student_id VARCHAR(32) NOT NULL,
     password VARCHAR(128) NOT NULL,
+    email VARCHAR(128),
+    phone VARCHAR(32),
     nickname VARCHAR(64),
+    real_name VARCHAR(64),
+    department VARCHAR(64),
     avatar_url VARCHAR(255),
     role SMALLINT NOT NULL DEFAULT 0,
     credit_score INTEGER NOT NULL DEFAULT 100,
@@ -25,6 +29,10 @@ CREATE TABLE IF NOT EXISTS u_user (
 COMMENT ON TABLE u_user IS 'User account and public profile';
 COMMENT ON COLUMN u_user.student_id IS 'Student id used for login';
 COMMENT ON COLUMN u_user.password IS 'BCrypt password hash';
+COMMENT ON COLUMN u_user.email IS 'Contact email for profile editing';
+COMMENT ON COLUMN u_user.phone IS 'Contact phone number for profile editing';
+COMMENT ON COLUMN u_user.real_name IS 'Real name stored in editable profile';
+COMMENT ON COLUMN u_user.department IS 'College or department for public profile';
 COMMENT ON COLUMN u_user.role IS '0=user, 1=admin';
 COMMENT ON COLUMN u_user.status IS '0=normal, 1=pending verification, 2=banned';
 

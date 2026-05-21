@@ -6,7 +6,7 @@
 
 | 实体 | 表名 | 属性列 (含主外键) | 说明 |
 |---|---|---|---|
-| 用户 | `u_user` | `id`(主键), `student_id`(学号), `password`(哈希密码), `nickname`(昵称), `avatar_url`(头像), `role`(角色), `credit_score`(信用分), `status`(账号状态), `create_time`, `update_time`, `is_deleted` | 存储用户基础信息、角色、信用分与账号状态 |
+| 用户 | `u_user` | `id`(主键), `student_id`(学号), `password`(哈希密码), `email`(邮箱), `phone`(手机号), `nickname`(昵称), `real_name`(真实姓名), `department`(所属院系), `avatar_url`(头像), `role`(角色), `credit_score`(信用分), `status`(账号状态), `create_time`, `update_time`, `is_deleted` | 存储用户基础信息、联系方式、角色、信用分与账号状态 |
 | 用户认证 | `t_user_verification` | `id`(主键), `user_id`(外键), `reviewer_id`(外键), `real_name`(真实姓名), `student_card_image`(证件照片), `status`(审核状态), `reject_reason`(驳回原因), `create_time`, `update_time` | 存储学生证/统一身份认证材料与审核结果 |
 | 互助任务 | `t_task` | `id`(主键), `publisher_id`(外键), `title`(标题), `description`(描述), `category`(分类), `location`(地点), `reward`(报酬), `status`(任务状态), `create_time`, `update_time`, `is_deleted` | 存储用户发布的快递代取、学习辅导、二手交易、组队等任务 |
 | 任务收藏 | `t_task_favorite` | `id`(主键), `user_id`(外键), `task_id`(外键), `create_time` | 用户收藏互助任务的中间实体 |
