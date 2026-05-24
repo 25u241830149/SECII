@@ -1,15 +1,33 @@
-import { apiGet } from './request'
-import type { EntityId, OrderDTO, OrderStatus, PageQuery, PageResponse } from '@/types'
+import { apiGet, apiPost } from './request'
+import type {
+  EntityId,
+  GrabOrderRequest,
+  OrderDetailDTO,
+  OrderListDTO,
+  OrderListQuery,
+  PageResponse,
+} from '@/types'
 
-export interface OrderQuery extends PageQuery {
-  userId: EntityId
-  role?: 'poster' | 'helper'
-  status?: OrderStatus
+export function grabOrder(payload: GrabOrderRequest) {
+  return apiPost<OrderDetailDTO, GrabOrderRequest>('/orders/grab', payload)
 }
 
-export function getOrders(query: OrderQuery) {
-  return apiGet<PageResponse<OrderDTO>>('/orders', {
-    params: query,
-  })
+export function confirmOrder(orderId: EntityId) {
+  return apiPost<OrderDetailDTO>(`/orders/${orderId}/confirm`)
 }
 
+export function completeOrder(orderId: EntityId) {
+  return apiPost<OrderDetailDTO>(`/orders/${orderId}/complete`)
+}
+
+export function cancelOrder(orderId: EntityId) {
+  return apiPost<OrderDetailDTO>(`/orders/${orderId}/cancel`)
+}
+
+export function getOrders(query: OrderListQuery) {
+  return apiGet<PageResponse<OrderListDTO>>('/orders', { params: query })
+}
+
+export function getOrderDetail(orderId: EntityId) {
+  return apiGet<OrderDetailDTO>(`/orders/${orderId}`)
+}

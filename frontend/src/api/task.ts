@@ -1,35 +1,47 @@
-import { apiDelete, apiGet, apiPost } from './request'
-import type { EntityId, PageQuery, PageResponse, TaskCategory, TaskDTO } from '@/types'
+import { apiDelete, apiGet, apiPost, apiPut } from './request'
+import type {
+  EntityId,
+  FavoriteTaskQuery,
+  PageResponse,
+  TaskDetailDTO,
+  TaskFavoriteResultDTO,
+  TaskListDTO,
+  TaskListQuery,
+  TaskMutationPayload,
+} from '@/types'
 
-export interface FavoriteTaskQuery extends PageQuery {
-  userId: EntityId
-  category?: TaskCategory
+export function getTasks(query: TaskListQuery = {}) {
+  return apiGet<PageResponse<TaskListDTO>>('/tasks', { params: query })
 }
 
-export interface PublishedTaskQuery extends PageQuery {
-  userId: EntityId
+export function getTaskDetail(taskId: EntityId) {
+  return apiGet<TaskDetailDTO>(`/tasks/${taskId}`)
+}
+
+export function createTask(payload: TaskMutationPayload) {
+  return apiPost<TaskDetailDTO, TaskMutationPayload>('/tasks', payload)
+}
+
+export function updateTask(taskId: EntityId, payload: TaskMutationPayload) {
+  return apiPut<TaskDetailDTO, TaskMutationPayload>(`/tasks/${taskId}`, payload)
+}
+
+export function deleteTask(taskId: EntityId) {
+  return apiDelete<void>(`/tasks/${taskId}`)
 }
 
 export function getFavoriteTasks(query: FavoriteTaskQuery) {
-  return apiGet<PageResponse<TaskDTO>>('/tasks/favorites', {
-    params: query,
-  })
-}
-
-export function getPublishedTasks(query: PublishedTaskQuery) {
-  return apiGet<PageResponse<TaskDTO>>('/tasks', {
-    params: {
-      ...query,
-      publisherId: query.userId,
-    },
-  })
+  return apiGet<PageResponse<TaskListDTO>>('/tasks/favorites', { params: query })
 }
 
 export function favoriteTask(taskId: EntityId) {
-  return apiPost<{ taskId: EntityId; favorited: boolean }>(`/tasks/${taskId}/favorite`)
+  return apiPost<TaskFavoriteResultDTO>(`/tasks/${taskId}/favorite`)
 }
 
 export function unfavoriteTask(taskId: EntityId) {
-  return apiDelete<{ taskId: EntityId; favorited: boolean }>(`/tasks/${taskId}/favorite`)
+  return apiDelete<TaskFavoriteResultDTO>(`/tasks/${taskId}/favorite`)
 }
 
+export function getPublishedTasks(query: Omit<TaskListQuery, 'publisherId'> & { userId: EntityId }) {
+  return getTasks({ ...query, publisherId: query.userId })
+}

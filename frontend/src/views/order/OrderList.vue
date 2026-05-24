@@ -1,22 +1,36 @@
 <template>
-  <section class="profile-page">
-    <header class="page-head">
+  <section class="orders-page">
+    <article class="toolbar-card">
       <div>
-        <h1>我的接单</h1>
-        <p>这里展示当前账号作为帮手参与的订单，状态来自 Sprint2 订单接口。</p>
+        <h1>订单列表</h1>
+        <p>按身份和状态筛选，查看当前抢单、确认、完成和取消流转。</p>
       </div>
-    </header>
+      <div class="filters">
+        <el-select v-model="role" @change="loadOrders">
+          <el-option label="全部身份" value="all" />
+          <el-option label="我是发布者" value="poster" />
+          <el-option label="我是帮手" value="helper" />
+        </el-select>
+        <el-select v-model="status" @change="loadOrders">
+          <el-option label="全部状态" value="all" />
+          <el-option label="待确认" value="PENDING" />
+          <el-option label="进行中" value="CONFIRMED" />
+          <el-option label="已完成" value="COMPLETED" />
+          <el-option label="已取消" value="CANCELLED" />
+        </el-select>
+      </div>
+    </article>
 
-    <article class="panel">
+    <article class="list-card">
       <el-skeleton :loading="loading" animated :rows="6">
         <template #default>
-          <el-empty v-if="!orders.length" description="还没有接单记录" />
+          <el-empty v-if="!orders.length" description="暂无订单记录" />
           <div v-else class="order-list">
             <article v-for="order in orders" :key="order.orderId" class="order-row">
               <div class="main">
                 <h2>{{ order.taskTitle }}</h2>
                 <p>{{ taskCategoryLabels[order.taskCategory] }} · {{ order.taskLocation || '校内待定地点' }}</p>
-                <small>发布者：{{ order.posterName }}</small>
+                <small>发布者：{{ order.posterName }} · 帮手：{{ order.helperName }}</small>
               </div>
               <div class="price">¥{{ Number(order.reward).toFixed(2) }}</div>
               <OrderStatusBadge :status="order.status" />
@@ -48,16 +62,18 @@ import { getOrders } from '@/api/order'
 import OrderStatusBadge from '@/components/OrderStatusBadge.vue'
 import { useAuthStore } from '@/stores'
 import { taskCategoryLabels } from '@/types'
-import type { OrderListDTO } from '@/types'
+import type { OrderListDTO, OrderStatus } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const loading = ref(false)
 const orders = ref<OrderListDTO[]>([])
-const total = ref(0)
 const page = ref(1)
-const pageSize = 6
+const pageSize = 8
+const total = ref(0)
+const role = ref<'all' | 'poster' | 'helper'>('all')
+const status = ref<'all' | OrderStatus>('all')
 
 const loadOrders = async () => {
   if (!authStore.user) return
@@ -65,7 +81,8 @@ const loadOrders = async () => {
   try {
     const result = await getOrders({
       userId: authStore.user.userId,
-      role: 'helper',
+      role: role.value === 'all' ? undefined : role.value,
+      status: status.value === 'all' ? undefined : status.value,
       page: page.value,
       size: pageSize,
     })
@@ -80,13 +97,13 @@ onMounted(loadOrders)
 </script>
 
 <style scoped>
-.profile-page {
+.orders-page {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
-.page-head,
-.panel {
+.toolbar-card,
+.list-card {
   padding: 22px;
   border: 1px solid #e7edf7;
   border-radius: 24px;
@@ -94,14 +111,26 @@ onMounted(loadOrders)
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
 }
 
-.page-head h1,
-.page-head p {
+.toolbar-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.toolbar-card h1,
+.toolbar-card p {
   margin: 0;
 }
 
-.page-head p {
+.toolbar-card p {
   margin-top: 8px;
   color: #64748b;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
 }
 
 .order-list {
@@ -145,5 +174,19 @@ onMounted(loadOrders)
   gap: 12px;
   margin-top: 18px;
   color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .toolbar-card,
+  .order-row,
+  .pager {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .filters {
+    width: 100%;
+    flex-direction: column;
+  }
 }
 </style>

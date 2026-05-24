@@ -5,7 +5,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan("com.campushub.user.mapper")
+@MapperScan({
+        "com.campushub.user.mapper",
+        "com.campushub.task.mapper",
+        "com.campushub.order.mapper"
+})
 public class CampusHubApplication {
 
     public static void main(String[] args) {

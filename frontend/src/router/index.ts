@@ -4,7 +4,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import PublicLayout from '@/layouts/PublicLayout.vue'
 import { useAuthStore } from '@/stores'
-import HomeView from '@/views/HomeView.vue'
+import HomeView from '@/views/home/Home.vue'
 import ForbiddenView from '@/views/system/ForbiddenView.vue'
 import NotFoundView from '@/views/system/NotFoundView.vue'
 import PlaceholderView from '@/views/system/PlaceholderView.vue'
@@ -35,25 +35,32 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'tasks',
         name: 'task-list',
-        component: PlaceholderView,
-        meta: { title: '需求广场', module: '任务模块', requiresAuth: true },
+        component: HomeView,
+        meta: { title: '任务广场', module: '任务模块' },
       },
       {
         path: 'tasks/publish',
         name: 'task-publish',
-        component: PlaceholderView,
-        meta: { title: '发布需求', module: '任务模块', requiresAuth: true },
+        component: () => import('@/views/publish/PublishTask.vue'),
+        meta: { title: '发布任务', module: '任务模块', requiresAuth: true },
       },
       {
         path: 'tasks/:taskId',
         name: 'task-detail',
-        component: PlaceholderView,
-        meta: { title: '需求详情', module: '任务模块', requiresAuth: true },
+        component: () => import('@/views/task/TaskDetail.vue'),
+        meta: { title: '任务详情', module: '任务模块' },
       },
       {
         path: 'orders',
         name: 'orders',
-        redirect: '/profile/orders',
+        component: () => import('@/views/order/OrderList.vue'),
+        meta: { title: '订单列表', module: '订单模块', requiresAuth: true },
+      },
+      {
+        path: 'orders/:orderId',
+        name: 'order-detail',
+        component: () => import('@/views/order/OrderDetail.vue'),
+        meta: { title: '订单详情', module: '订单模块', requiresAuth: true },
       },
       {
         path: 'messages',
@@ -82,7 +89,7 @@ const routes: RouteRecordRaw[] = [
             path: 'published',
             name: 'profile-published',
             component: () => import('@/views/profile/ProfilePublished.vue'),
-            meta: { title: '我的发单', module: '用户模块', requiresAuth: true },
+            meta: { title: '我的发布', module: '用户模块', requiresAuth: true },
           },
           {
             path: 'orders',
@@ -94,7 +101,7 @@ const routes: RouteRecordRaw[] = [
             path: 'credit',
             name: 'profile-credit',
             component: () => import('@/views/profile/ProfileCredit.vue'),
-            meta: { title: '信用分与等级', module: '用户模块', requiresAuth: true },
+            meta: { title: '信用分', module: '用户模块', requiresAuth: true },
           },
           {
             path: 'edit',
@@ -135,7 +142,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: '登录',
           publicEyebrow: '欢迎回来',
-          publicTitle: '校园互助，让学习更轻松，让生活更美好',
+          publicTitle: '校园互助，让学习更轻松，让生活更高效',
         },
       },
       {
@@ -145,7 +152,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: '注册',
           publicEyebrow: '加入 CampusHub',
-          publicTitle: '开启你的校园互助之旅，让学习更轻松，让生活更美好',
+          publicTitle: '创建你的校园协作身份，开始发布任务和参与抢单',
         },
       },
     ],
@@ -233,8 +240,7 @@ router.beforeEach((to) => {
 })
 
 router.afterEach((to) => {
-  const title = to.meta.title ? `${to.meta.title} - CampusHub` : 'CampusHub'
-  document.title = title
+  document.title = to.meta.title ? `${to.meta.title} - CampusHub` : 'CampusHub'
 })
 
 export default router

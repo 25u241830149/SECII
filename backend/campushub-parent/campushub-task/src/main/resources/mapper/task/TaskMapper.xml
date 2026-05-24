@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campushub.task.mapper.TaskMapper">
+
+    <resultMap id="TaskResultMap" type="com.campushub.task.entity.Task">
+        <id property="id" column="id"/>
+        <result property="publisherId" column="publisher_id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="category" column="category"/>
+        <result property="location" column="location"/>
+        <result property="reward" column="reward"/>
+        <result property="status" column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="isDeleted" column="is_deleted"/>
+        <result property="longitude" column="longitude"/>
+        <result property="latitude" column="latitude"/>
+    </resultMap>
+
+    <sql id="TaskColumns">
+        t.id,
+        t.publisher_id,
+        t.title,
+        t.description,
+        t.category,
+        t.location,
+        t.reward,
+        t.status,
+        t.create_time,
+        t.update_time,
+        t.is_deleted,
+        CASE WHEN t.location_point IS NOT NULL THEN ST_X(t.location_point::geometry) END AS longitude,
+        CASE WHEN t.location_point IS NOT NULL THEN ST_Y(t.location_point::geometry) END AS latitude
+    </sql>
+
+    <sql id="TaskCategoryCase">
+        CASE t.category
+            WHEN 0 THEN 'EXPRESS'
+            WHEN 1 THEN 'STUDY'
+            WHEN 2 THEN 'SECOND_HAND'
+            WHEN 3 THEN 'TEAM_UP'
+            ELSE 'OTHER'
+        END
+    </sql>
+
+    <sql id="TaskStatusCase">
+        CASE
+            WHEN t.status IN (1, 2) THEN 'IN_PROGRESS'
+            WHEN t.status = 3 THEN 'COMPLETED'
+            WHEN t.status = 4 THEN 'OFFLINE'
+            ELSE 'OPEN'
+        END
+    </sql>
+
+    <insert id="insertTask" parameterType="com.campushub.task.entity.Task" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_task (
+            publisher_id,
+            title,
+            description,
+            category,
+            location,
+            location_point,
+            reward,
+            status
+        ) VALUES (
+            #{publisherId},
+            #{title},
+            #{description},
+            #{category},
+            #{location},
+            CASE
+                WHEN #{longitude} IS NOT NULL AND #{latitude} IS NOT NULL
+                    THEN ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)::geography
+                ELSE NULL
+            END,
+            #{reward},
+            #{status}
+        )
+    </insert>
+
+    <update id="updateTask" parameterType="com.campushub.task.entity.Task">
+        UPDATE t_task
+        SET title = #{title},
+            description = #{description},
+            category = #{category},
+            location = #{location},
+            location_point = CASE
+                WHEN #{longitude} IS NOT NULL AND #{latitude} IS NOT NULL
+                    THEN ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)::geography
+                ELSE NULL
+            END,
+            reward = #{reward},
+            status = #{status},
+            is_deleted = COALESCE(#{isDeleted}, is_deleted),
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND is_deleted = false
+    </update>
+
+    <select id="selectTaskById" resultMap="TaskResultMap">
+        SELECT
+        <include refid="TaskColumns"/>
+        FROM t_task t
+        WHERE t.id = #{taskId}
+          AND t.is_deleted = false
+        LIMIT 1
+    </select>
+
+    <select id="selectTaskByIdAndPublisher" resultMap="TaskResultMap">
+        SELECT
+        <include refid="TaskColumns"/>
+        FROM t_task t
+        WHERE t.id = #{taskId}
+          AND t.publisher_id = #{publisherId}
+          AND t.is_deleted = false
+        LIMIT 1
+    </select>
+
+    <select id="selectTaskDetail" resultType="com.campushub.task.dto.TaskDetailDTO">
+        SELECT
+            t.id AS taskId,
+            t.title,
+            t.description,
+            <include refid="TaskCategoryCase"/> AS category,
+            <include refid="TaskStatusCase"/> AS status,
+            t.reward,
+            t.location,
+            CASE WHEN t.location_point IS NOT NULL THEN ST_X(t.location_point::geometry) END AS longitude,
+            CASE WHEN t.location_point IS NOT NULL THEN ST_Y(t.location_point::geometry) END AS latitude,
+            u.id AS publisherId,
+            u.nickname AS publisherName,
+            u.avatar_url AS publisherAvatarUrl,
+            u.department AS publisherDepartment,
+            u.credit_score AS publisherCreditScore,
+            COALESCE(f.favorite_count, 0) AS favoriteCount,
+            CASE WHEN tf.id IS NULL THEN FALSE ELSE TRUE END AS favorited,
+            t.create_time AS createdAt,
+            t.update_time AS updatedAt
+        FROM t_task t
+        JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS favorite_count
+            FROM t_task_favorite
+            GROUP BY task_id
+        ) f ON f.task_id = t.id
+        LEFT JOIN t_task_favorite tf ON tf.task_id = t.id AND tf.user_id = #{viewerId}
+        WHERE t.id = #{taskId}
+          AND t.is_deleted = false
+        LIMIT 1
+    </select>
+
+    <select id="selectTaskList" resultType="com.campushub.task.dto.TaskListDTO">
+        SELECT
+            t.id AS taskId,
+            t.title,
+            t.description,
+            <include refid="TaskCategoryCase"/> AS category,
+            <include refid="TaskStatusCase"/> AS status,
+            t.reward,
+            t.location,
+            CASE WHEN t.location_point IS NOT NULL THEN ST_X(t.location_point::geometry) END AS longitude,
+            CASE WHEN t.location_point IS NOT NULL THEN ST_Y(t.location_point::geometry) END AS latitude,
+            u.id AS publisherId,
+            u.nickname AS publisherName,
+            u.avatar_url AS publisherAvatarUrl,
+            u.credit_score AS publisherCreditScore,
+            COALESCE(f.favorite_count, 0) AS favoriteCount,
+            CASE WHEN tf.id IS NULL THEN FALSE ELSE TRUE END AS favorited,
+            t.create_time AS createdAt,
+            t.update_time AS updatedAt
+        FROM t_task t
+        JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS favorite_count
+            FROM t_task_favorite
+            GROUP BY task_id
+        ) f ON f.task_id = t.id
+        LEFT JOIN t_task_favorite tf ON tf.task_id = t.id AND tf.user_id = #{viewerId}
+        WHERE t.is_deleted = false
+          <if test="category != null">
+            AND t.category = #{category}
+          </if>
+          <if test="publisherId != null">
+            AND t.publisher_id = #{publisherId}
+          </if>
+          <if test="keyword != null and keyword != ''">
+            AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+        <choose>
+            <when test="sort == 'hot'">
+                ORDER BY COALESCE(f.favorite_count, 0) DESC, t.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY t.create_time DESC
+            </otherwise>
+        </choose>
+        OFFSET #{offset}
+        LIMIT #{size}
+    </select>
+
+    <select id="countTaskList" resultType="long">
+        SELECT COUNT(1)
+        FROM t_task t
+        WHERE t.is_deleted = false
+          <if test="category != null">
+            AND t.category = #{category}
+          </if>
+          <if test="publisherId != null">
+            AND t.publisher_id = #{publisherId}
+          </if>
+          <if test="keyword != null and keyword != ''">
+            AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+    </select>
+
+    <select id="selectFavoriteTaskList" resultType="com.campushub.task.dto.TaskListDTO">
+        SELECT
+            t.id AS taskId,
+            t.title,
+            t.description,
+            <include refid="TaskCategoryCase"/> AS category,
+            <include refid="TaskStatusCase"/> AS status,
+            t.reward,
+            t.location,
+            CASE WHEN t.location_point IS NOT NULL THEN ST_X(t.location_point::geometry) END AS longitude,
+            CASE WHEN t.location_point IS NOT NULL THEN ST_Y(t.location_point::geometry) END AS latitude,
+            u.id AS publisherId,
+            u.nickname AS publisherName,
+            u.avatar_url AS publisherAvatarUrl,
+            u.credit_score AS publisherCreditScore,
+            COALESCE(f.favorite_count, 0) AS favoriteCount,
+            TRUE AS favorited,
+            t.create_time AS createdAt,
+            t.update_time AS updatedAt
+        FROM t_task_favorite tf
+        JOIN t_task t ON t.id = tf.task_id AND t.is_deleted = false
+        JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
+        LEFT JOIN (
+            SELECT task_id, COUNT(*) AS favorite_count
+            FROM t_task_favorite
+            GROUP BY task_id
+        ) f ON f.task_id = t.id
+        WHERE tf.user_id = #{userId}
+          <if test="category != null">
+            AND t.category = #{category}
+          </if>
+          <if test="keyword != null and keyword != ''">
+            AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+        <choose>
+            <when test="sort == 'hot'">
+                ORDER BY COALESCE(f.favorite_count, 0) DESC, tf.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY tf.create_time DESC
+            </otherwise>
+        </choose>
+        OFFSET #{offset}
+        LIMIT #{size}
+    </select>
+
+    <select id="countFavoriteTaskList" resultType="long">
+        SELECT COUNT(1)
+        FROM t_task_favorite tf
+        JOIN t_task t ON t.id = tf.task_id AND t.is_deleted = false
+        WHERE tf.user_id = #{userId}
+          <if test="category != null">
+            AND t.category = #{category}
+          </if>
+          <if test="keyword != null and keyword != ''">
+            AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+    </select>
+
+    <update id="updateTaskStatus">
+        UPDATE t_task
+        SET status = #{newStatus},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{taskId}
+          AND is_deleted = false
+          AND status = #{currentStatus}
+    </update>
+
+    <update id="forceUpdateTaskStatus">
+        UPDATE t_task
+        SET status = #{newStatus},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{taskId}
+          AND is_deleted = false
+    </update>
+
+    <select id="countPublishedByUser" resultType="long">
+        SELECT COUNT(1)
+        FROM t_task
+        WHERE publisher_id = #{userId}
+          AND is_deleted = false
+    </select>
+</mapper>
