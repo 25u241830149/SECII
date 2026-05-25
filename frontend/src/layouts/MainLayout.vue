@@ -57,7 +57,7 @@
             type="button"
             class="sidebar-item"
             :class="{ active: appStore.activeTaskCategory === item.value }"
-            @click="appStore.setActiveTaskCategory(item.value)"
+            @click="selectTaskCategory(item.value)"
           >
             <span>{{ item.icon }}</span>
             <strong>{{ item.label }}</strong>
@@ -118,6 +118,7 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { useAppStore, useAuthStore, useUserStore } from '@/stores'
 import { resolveAssetUrl } from '@/utils/asset'
+import type { TaskCategory } from '@/types'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
@@ -137,6 +138,16 @@ const categories = [
   { value: 'TEAM_UP' as const, label: '活动组队', icon: '◆' },
   { value: 'OTHER' as const, label: '其他', icon: '◇' },
 ]
+
+type CategoryFilter = TaskCategory | 'ALL'
+
+const selectTaskCategory = (category: CategoryFilter) => {
+  appStore.setActiveTaskCategory(category)
+  router.push({
+    name: 'task-list',
+    query: category === 'ALL' ? {} : { category },
+  })
+}
 
 const handleUserCommand = (command: string | number | object) => {
   if (command === 'profile-edit') {

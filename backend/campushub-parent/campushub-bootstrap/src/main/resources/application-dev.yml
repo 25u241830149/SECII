@@ -13,7 +13,8 @@ spring:
       timeout: 3s
   sql:
     init:
-      mode: never
+      mode: always
+      schema-locations: classpath:db/schema.sql
 
 campushub:
   cors:

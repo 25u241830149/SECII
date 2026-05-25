@@ -69,11 +69,14 @@
             #{description},
             #{category},
             #{location},
-            CASE
-                WHEN #{longitude} IS NOT NULL AND #{latitude} IS NOT NULL
-                    THEN ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)::geography
-                ELSE NULL
-            END,
+            <choose>
+                <when test="longitude != null and latitude != null">
+                    ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)::geography
+                </when>
+                <otherwise>
+                    NULL
+                </otherwise>
+            </choose>,
             #{reward},
             #{status}
         )
@@ -85,11 +88,14 @@
             description = #{description},
             category = #{category},
             location = #{location},
-            location_point = CASE
-                WHEN #{longitude} IS NOT NULL AND #{latitude} IS NOT NULL
-                    THEN ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)::geography
-                ELSE NULL
-            END,
+            location_point = <choose>
+                <when test="longitude != null and latitude != null">
+                    ST_SetSRID(ST_MakePoint(#{longitude}, #{latitude}), 4326)::geography
+                </when>
+                <otherwise>
+                    NULL
+                </otherwise>
+            </choose>,
             reward = #{reward},
             status = #{status},
             is_deleted = COALESCE(#{isDeleted}, is_deleted),

@@ -29,7 +29,10 @@
     </section>
 
     <section class="toolbar">
-      <CategoryNav v-model="activeCategory" />
+      <CategoryNav
+        :model-value="activeCategory"
+        @update:model-value="handleCategoryChange"
+      />
       <div class="filters">
         <el-input
           v-model="keyword"
@@ -89,7 +92,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { favoriteTask, unfavoriteTask } from '@/api/task'
 import { grabOrder } from '@/api/order'
@@ -99,6 +102,7 @@ import { useAppStore, useAuthStore, useFeedStore } from '@/stores'
 import type { SortType, TaskCategory, TaskListDTO } from '@/types'
 
 const router = useRouter()
+const route = useRoute()
 const feedStore = useFeedStore()
 const appStore = useAppStore()
 const authStore = useAuthStore()
@@ -106,6 +110,14 @@ const authStore = useAuthStore()
 const keyword = ref(feedStore.keyword)
 const sort = ref<SortType>(feedStore.sort)
 const activeCategory = ref<TaskCategory | 'ALL'>(feedStore.category)
+const validCategories = new Set<TaskCategory | 'ALL'>([
+  'ALL',
+  'EXPRESS',
+  'STUDY',
+  'SECOND_HAND',
+  'TEAM_UP',
+  'OTHER',
+])
 
 const openTaskCount = computed(() => feedStore.tasks.filter((task) => task.status === 'OPEN').length)
 const favoriteableCount = computed(() => feedStore.tasks.filter((task) => task.favorited !== undefined).length)
@@ -115,7 +127,22 @@ const applyFilters = async () => {
   feedStore.setSort(sort.value)
   feedStore.setCategory(activeCategory.value)
   appStore.setActiveTaskCategory(activeCategory.value)
+
+  await router.push({
+    name: 'task-list',
+    query: {
+      ...(activeCategory.value === 'ALL' ? {} : { category: activeCategory.value }),
+      ...(keyword.value.trim() ? { keyword: keyword.value.trim() } : {}),
+      ...(sort.value === 'time' ? {} : { sort: sort.value }),
+    },
+  })
+
   await feedStore.fetchTasks()
+}
+
+const handleCategoryChange = async (category: TaskCategory | 'ALL') => {
+  activeCategory.value = category
+  await applyFilters()
 }
 
 const goDetail = (task: TaskListDTO) => {
@@ -152,18 +179,27 @@ const handleGrab = async (task: TaskListDTO) => {
   router.push('/orders')
 }
 
+const normalizeCategory = (value: unknown): TaskCategory | 'ALL' => {
+  return typeof value === 'string' && validCategories.has(value as TaskCategory | 'ALL')
+    ? (value as TaskCategory | 'ALL')
+    : 'ALL'
+}
+
 watch(
-  () => appStore.activeTaskCategory,
+  () => route.query.category,
   async (category) => {
-    activeCategory.value = category
-    await applyFilters()
+    const normalizedCategory = normalizeCategory(category)
+    activeCategory.value = normalizedCategory
+    feedStore.setCategory(normalizedCategory)
+    appStore.setActiveTaskCategory(normalizedCategory)
+    await feedStore.fetchTasks()
   },
+  { immediate: true },
 )
 
-onMounted(async () => {
-  if (!feedStore.tasks.length) {
-    await feedStore.fetchTasks()
-  }
+onMounted(() => {
+  keyword.value = feedStore.keyword
+  sort.value = feedStore.sort
 })
 </script>
 

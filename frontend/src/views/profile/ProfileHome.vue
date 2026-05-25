@@ -10,11 +10,11 @@
             <h1>{{ displayName }}</h1>
             <span>{{ creditLevel }} 可信用户</span>
           </div>
-          <p>学号：{{ authStore.user?.studentId || '-' }} <b></b> 普通用户</p>
-          <p class="bio">这个人很懒，什么都没有留下~</p>
+          <p>学号：{{ authStore.user?.studentId || '-' }} <b></b> {{ authStore.user?.role || 'USER' }}</p>
+          <p class="bio">{{ authStore.user?.department || userStore.home?.nickname || '校园互助用户' }}</p>
           <div class="meta-line">
-            <span>计算机学院</span>
-            <span>上海大学</span>
+            <span>{{ authStore.user?.department || '学院未填写' }}</span>
+            <span>CampusHub</span>
           </div>
         </div>
       </div>
@@ -50,17 +50,18 @@
         <h2><el-icon><Star /></el-icon> 我的收藏</h2>
         <RouterLink to="/profile/favorites">更多</RouterLink>
       </header>
-      <article v-for="task in favoritePreview" :key="task.id" class="favorite-row">
-        <div class="task-thumb">{{ task.image }}</div>
+      <el-empty v-if="!favoritePreview.length" description="暂无收藏任务" />
+      <article v-for="task in favoritePreview" v-else :key="task.taskId" class="favorite-row">
+        <div class="task-thumb">{{ task.publisherName.slice(0, 1) }}</div>
         <div>
           <h3>{{ task.title }}</h3>
           <p>
             <span>{{ profileTaskCategoryLabels[task.category] }}</span>
-            {{ task.location }}
+            {{ task.location || '校内待定地点' }}
           </p>
         </div>
-        <time>收藏时间：{{ task.collectedAt }}</time>
-        <button type="button" aria-label="收藏">☆</button>
+        <time>{{ formatDate(task.createdAt) }}</time>
+        <button type="button" aria-label="查看任务" @click="router.push(`/tasks/${task.taskId}`)">→</button>
       </article>
     </section>
 
@@ -71,9 +72,9 @@
           <RouterLink to="/profile/published">更多</RouterLink>
         </header>
         <ul>
-          <li><span class="dot orange"></span>进行中 <strong>3</strong></li>
-          <li><span class="dot green"></span>已完成 <strong>7</strong></li>
-          <li><span class="dot red"></span>已取消 <strong>2</strong></li>
+          <li><span class="dot orange"></span>进行中<strong>{{ publishedStats.inProgress }}</strong></li>
+          <li><span class="dot green"></span>已完成<strong>{{ publishedStats.completed }}</strong></li>
+          <li><span class="dot red"></span>已下线/取消<strong>{{ publishedStats.offline }}</strong></li>
         </ul>
       </section>
 
@@ -83,9 +84,9 @@
           <RouterLink to="/profile/orders">更多</RouterLink>
         </header>
         <ul>
-          <li><span class="dot orange"></span>进行中 <strong>2</strong></li>
-          <li><span class="dot green"></span>已完成 <strong>5</strong></li>
-          <li><span class="dot red"></span>已取消 <strong>1</strong></li>
+          <li><span class="dot orange"></span>进行中<strong>{{ helperOrderStats.inProgress }}</strong></li>
+          <li><span class="dot green"></span>已完成<strong>{{ helperOrderStats.completed }}</strong></li>
+          <li><span class="dot red"></span>已取消<strong>{{ helperOrderStats.cancelled }}</strong></li>
         </ul>
       </section>
 
@@ -98,66 +99,118 @@
           <strong>{{ creditScore }}</strong>
           <div class="medal small">★</div>
           <div>
-            <p>完成率 <span>100%</span></p>
-            <el-progress :percentage="100" :show-text="false" color="#35b779" />
-            <p>取消率 <span>0%</span></p>
-            <el-progress :percentage="0" :show-text="false" color="#f05252" />
+            <p>完成率<span>{{ completionRate }}%</span></p>
+            <el-progress :percentage="completionRate" :show-text="false" color="#35b779" />
+            <p>取消率<span>{{ cancelRate }}%</span></p>
+            <el-progress :percentage="cancelRate" :show-text="false" color="#f05252" />
           </div>
         </div>
       </section>
 
-      <section class="profile-card danger-card">
+      <section class="profile-card compact-card">
         <header>
-          <h2><el-icon><Warning /></el-icon> 账户注销</h2>
-          <RouterLink to="/profile/delete">更多</RouterLink>
+          <h2><el-icon><Warning /></el-icon> 我的订单</h2>
+          <RouterLink to="/orders">更多</RouterLink>
         </header>
-        <p>注销账户后，您的所有数据将被永久删除，且无法恢复。</p>
         <ul>
-          <li>所有发布记录将被删除</li>
-          <li>信用分与等级将被清空</li>
-          <li>无法恢复，请谨慎操作</li>
+          <li><span class="dot orange"></span>进行中<strong>{{ allOrderStats.inProgress }}</strong></li>
+          <li><span class="dot green"></span>已完成<strong>{{ allOrderStats.completed }}</strong></li>
+          <li><span class="dot red"></span>已取消<strong>{{ allOrderStats.cancelled }}</strong></li>
         </ul>
-        <RouterLink class="danger-action" to="/profile/delete">前往注销</RouterLink>
       </section>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { Check, Document, Medal, Memo, Position, Star, Warning } from '@element-plus/icons-vue'
 
+import { getOrders } from '@/api/order'
+import { getFavoriteTasks, getPublishedTasks } from '@/api/task'
 import { useAuthStore, useUserStore } from '@/stores'
 import { resolveAssetUrl } from '@/utils/asset'
+import type { EntityId, OrderListDTO, TaskListDTO } from '@/types'
 import { profileTaskCategoryLabels } from './profileLabels'
-import { profileFavorites } from './profileMock'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const userStore = useUserStore()
 
-const displayName = computed(() => userStore.home?.nickname || authStore.user?.nickname || 'lyh')
+const favoritePreview = ref<TaskListDTO[]>([])
+const publishedTasks = ref<TaskListDTO[]>([])
+const helperOrders = ref<OrderListDTO[]>([])
+const allOrders = ref<OrderListDTO[]>([])
+const publishedTotal = ref(0)
+const allOrderTotal = ref(0)
+
+const displayName = computed(() => userStore.home?.nickname || authStore.user?.nickname || '用户')
 const userAvatar = computed(() => resolveAssetUrl(userStore.home?.avatarUrl || authStore.user?.avatarUrl || ''))
 const avatarFallback = computed(() => displayName.value.slice(0, 1).toUpperCase())
 const creditScore = computed(() => userStore.home?.creditScore ?? authStore.user?.creditScore ?? 100)
 const creditLevel = computed(() => userStore.home?.creditLevel || 'Lv.3')
-const favoritePreview = computed(() => profileFavorites.slice(0, 3))
+
+const publishedStats = computed(() => ({
+  inProgress: publishedTasks.value.filter((task) => task.status === 'OPEN' || task.status === 'IN_PROGRESS').length,
+  completed: publishedTasks.value.filter((task) => task.status === 'COMPLETED').length,
+  offline: publishedTasks.value.filter((task) => task.status === 'OFFLINE').length,
+}))
+
+const getOrderStats = (orders: OrderListDTO[]) => ({
+  inProgress: orders.filter((order) => order.status === 'PENDING' || order.status === 'CONFIRMED').length,
+  completed: orders.filter((order) => order.status === 'COMPLETED').length,
+  cancelled: orders.filter((order) => order.status === 'CANCELLED').length,
+})
+
+const helperOrderStats = computed(() => getOrderStats(helperOrders.value))
+const allOrderStats = computed(() => getOrderStats(allOrders.value))
+
+const completionRate = computed(() => {
+  const total = allOrders.value.length
+  return total ? Math.round((allOrderStats.value.completed / total) * 100) : 0
+})
+
+const cancelRate = computed(() => {
+  const total = allOrders.value.length
+  return total ? Math.round((allOrderStats.value.cancelled / total) * 100) : 0
+})
 
 const topStats = computed(() => [
-  { label: '发布任务数', value: userStore.home?.publishedTaskCount ?? 12, icon: Position, tone: 'blue' },
-  { label: '完成接单数', value: userStore.home?.completedOrderCount ?? 8, icon: Check, tone: 'green' },
-  { label: '评价数', value: userStore.home?.reviewCount ?? 15, icon: Memo, tone: 'orange' },
+  { label: '发布任务数', value: publishedTotal.value, icon: Position, tone: 'blue' },
+  { label: '完成接单数', value: helperOrderStats.value.completed, icon: Check, tone: 'green' },
+  { label: '我的订单数', value: allOrderTotal.value, icon: Memo, tone: 'orange' },
 ])
+
+const formatDate = (value: string) => {
+  if (!value) return '-'
+  return value.replace('T', ' ').slice(0, 16)
+}
+
+const loadProfileDashboard = async (userId: EntityId) => {
+  const [favorites, published, helper, all] = await Promise.all([
+    getFavoriteTasks({ userId, page: 1, size: 3 }),
+    getPublishedTasks({ userId, page: 1, size: 50 }),
+    getOrders({ userId, role: 'helper', page: 1, size: 50 }),
+    getOrders({ userId, page: 1, size: 50 }),
+  ])
+
+  favoritePreview.value = favorites.records
+  publishedTasks.value = published.records
+  helperOrders.value = helper.records
+  allOrders.value = all.records
+  publishedTotal.value = published.total
+  allOrderTotal.value = all.total
+}
 
 onMounted(async () => {
   const userId = authStore.user?.userId
   if (!userId) return
 
-  try {
-    await userStore.fetchHome(userId)
-  } catch {
-    // Mock dashboard data remains visible while the backend aggregate endpoints are incomplete.
-  }
+  await Promise.all([
+    userStore.fetchHome(userId),
+    loadProfileDashboard(userId),
+  ])
 })
 </script>
 
@@ -391,7 +444,9 @@ onMounted(async () => {
   place-items: center;
   border-radius: 8px;
   background: #f1f5f9;
-  font-size: 34px;
+  color: #334155;
+  font-size: 28px;
+  font-weight: 800;
 }
 
 .favorite-row h3 {
@@ -428,8 +483,7 @@ onMounted(async () => {
   gap: 18px;
 }
 
-.compact-card ul,
-.danger-card ul {
+.compact-card ul {
   display: grid;
   gap: 16px;
   margin: 0;
@@ -486,35 +540,6 @@ onMounted(async () => {
   justify-content: space-between;
   margin: 8px 0 4px;
   color: #475569;
-}
-
-.danger-card p {
-  margin: 0 0 16px;
-  color: #475569;
-}
-
-.danger-card li {
-  color: #475569;
-}
-
-.danger-card li::before {
-  color: #35b779;
-  content: "✓ ";
-  font-weight: 800;
-}
-
-.danger-action {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  margin-top: 20px;
-  padding: 0 20px;
-  border-radius: 8px;
-  background: #ef4444;
-  color: #fff;
-  font-weight: 800;
-  text-decoration: none;
 }
 
 @media (max-width: 980px) {

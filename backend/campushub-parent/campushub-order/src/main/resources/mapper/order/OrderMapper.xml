@@ -108,11 +108,17 @@
         JOIN u_user poster ON poster.id = o.poster_id AND poster.is_deleted = false
         JOIN u_user helper ON helper.id = o.helper_id AND helper.is_deleted = false
         WHERE o.is_deleted = false
-          AND (
-            (#{role} = 'poster' AND o.poster_id = #{userId})
-            OR (#{role} = 'helper' AND o.helper_id = #{userId})
-            OR (#{role} IS NULL AND (o.poster_id = #{userId} OR o.helper_id = #{userId}))
-          )
+          <choose>
+            <when test="role == 'poster'">
+              AND o.poster_id = #{userId}
+            </when>
+            <when test="role == 'helper'">
+              AND o.helper_id = #{userId}
+            </when>
+            <otherwise>
+              AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
+            </otherwise>
+          </choose>
           <if test="status != null">
             AND o.status = #{status}
           </if>
@@ -125,11 +131,17 @@
         SELECT COUNT(1)
         FROM t_order o
         WHERE o.is_deleted = false
-          AND (
-            (#{role} = 'poster' AND o.poster_id = #{userId})
-            OR (#{role} = 'helper' AND o.helper_id = #{userId})
-            OR (#{role} IS NULL AND (o.poster_id = #{userId} OR o.helper_id = #{userId}))
-          )
+          <choose>
+            <when test="role == 'poster'">
+              AND o.poster_id = #{userId}
+            </when>
+            <when test="role == 'helper'">
+              AND o.helper_id = #{userId}
+            </when>
+            <otherwise>
+              AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
+            </otherwise>
+          </choose>
           <if test="status != null">
             AND o.status = #{status}
           </if>
