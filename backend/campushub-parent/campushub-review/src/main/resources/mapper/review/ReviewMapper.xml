@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campushub.review.mapper.ReviewMapper">
+
+    <resultMap id="ReviewResultMap" type="com.campushub.review.entity.Review">
+        <id property="id" column="id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="reviewerId" column="reviewer_id"/>
+        <result property="targetUserId" column="target_user_id"/>
+        <result property="rating" column="rating"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="ReviewDetailSelect">
+        SELECT
+            r.id AS reviewId,
+            r.order_id AS orderId,
+            reviewer.id AS reviewerId,
+            reviewer.nickname AS reviewerName,
+            reviewer.avatar_url AS reviewerAvatarUrl,
+            target.id AS targetUserId,
+            target.nickname AS targetUserName,
+            target.avatar_url AS targetUserAvatarUrl,
+            r.rating,
+            r.content,
+            r.create_time AS createdAt
+        FROM t_review r
+        JOIN u_user reviewer ON reviewer.id = r.reviewer_id AND reviewer.is_deleted = false
+        JOIN u_user target ON target.id = r.target_user_id AND target.is_deleted = false
+    </sql>
+
+    <insert id="insertReview" parameterType="com.campushub.review.entity.Review" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_review (
+            order_id,
+            reviewer_id,
+            target_user_id,
+            rating,
+            content
+        ) VALUES (
+            #{orderId},
+            #{reviewerId},
+            #{targetUserId},
+            #{rating},
+            #{content}
+        )
+    </insert>
+
+    <select id="selectReviewById" resultType="com.campushub.review.dto.ReviewDTO">
+        <include refid="ReviewDetailSelect"/>
+        WHERE r.id = #{reviewId}
+        LIMIT 1
+    </select>
+
+    <select id="selectReviewByOrderAndReviewer" resultMap="ReviewResultMap">
+        SELECT id, order_id, reviewer_id, target_user_id, rating, content, create_time
+        FROM t_review
+        WHERE order_id = #{orderId}
+          AND reviewer_id = #{reviewerId}
+        LIMIT 1
+    </select>
+
+    <select id="selectReviewsByUser" resultType="com.campushub.review.dto.ReviewDTO">
+        <include refid="ReviewDetailSelect"/>
+        WHERE r.target_user_id = #{userId}
+        ORDER BY r.create_time DESC
+        OFFSET #{offset}
+        LIMIT #{size}
+    </select>
+
+    <select id="countReviewsByUser" resultType="long">
+        SELECT COUNT(1)
+        FROM t_review
+        WHERE target_user_id = #{userId}
+    </select>
+
+    <select id="selectReviewsByOrder" resultType="com.campushub.review.dto.ReviewDTO">
+        <include refid="ReviewDetailSelect"/>
+        WHERE r.order_id = #{orderId}
+        ORDER BY r.create_time ASC
+    </select>
+
+    <select id="averageRatingForTarget" resultType="java.math.BigDecimal">
+        SELECT AVG(rating)
+        FROM t_review
+        WHERE target_user_id = #{targetUserId}
+    </select>
+
+    <select id="countReviewsForTarget" resultType="long">
+        SELECT COUNT(1)
+        FROM t_review
+        WHERE target_user_id = #{targetUserId}
+    </select>
+
+    <select id="countAllReviews" resultType="long">
+        SELECT COUNT(1)
+        FROM t_review
+    </select>
+
+    <select id="averageAllRating" resultType="java.math.BigDecimal">
+        SELECT AVG(rating)
+        FROM t_review
+    </select>
+</mapper>

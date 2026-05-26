@@ -15,10 +15,10 @@
       <nav class="top-actions" aria-label="快捷入口">
         <RouterLink class="publish-button" to="/tasks/publish">+ 发布需求</RouterLink>
         <RouterLink to="/orders">我的订单</RouterLink>
-        <button type="button" class="notice-button" @click="appStore.markNoticesRead">
+        <RouterLink class="notice-button" to="/messages">
           消息通知
-          <span v-if="appStore.unreadNoticeCount">{{ appStore.unreadNoticeCount }}</span>
-        </button>
+          <span v-if="unreadMessageCount">{{ unreadMessageCount }}</span>
+        </RouterLink>
         <el-dropdown
           v-if="authStore.isAuthenticated"
           trigger="click"
@@ -112,10 +112,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 
+import { getUnreadMessageCount } from '@/api/message'
 import { useAppStore, useAuthStore, useUserStore } from '@/stores'
 import { resolveAssetUrl } from '@/utils/asset'
 import type { TaskCategory } from '@/types'
@@ -125,6 +126,7 @@ const authStore = useAuthStore()
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
+const unreadMessageCount = ref(0)
 
 const isProfileArea = computed(() => route.path.startsWith('/profile'))
 const headerAvatar = computed(() => resolveAssetUrl(userStore.profile?.avatarUrl || authStore.user?.avatarUrl || ''))
@@ -167,6 +169,28 @@ const handleUserCommand = (command: string | number | object) => {
     router.replace('/login')
   }
 }
+
+const refreshUnreadCount = async () => {
+  if (!authStore.isAuthenticated) {
+    unreadMessageCount.value = 0
+    return
+  }
+
+  try {
+    unreadMessageCount.value = (await getUnreadMessageCount()).count
+  } catch {
+    unreadMessageCount.value = 0
+  }
+}
+
+watch(
+  () => [authStore.isAuthenticated, route.fullPath],
+  () => {
+    refreshUnreadCount()
+  },
+)
+
+onMounted(refreshUnreadCount)
 </script>
 
 <style scoped>
@@ -265,13 +289,16 @@ const handleUserCommand = (command: string | number | object) => {
 }
 
 .publish-button {
+  display: inline-flex;
   height: 42px;
+  align-items: center;
+  justify-content: center;
   padding: 0 22px;
   border-radius: 8px;
   background: linear-gradient(135deg, #1478ff, #6b48ff) !important;
   color: #fff !important;
   font-weight: 700;
-  line-height: 42px;
+  line-height: 1;
   box-shadow: 0 10px 20px rgba(79, 124, 255, 0.26);
 }
 

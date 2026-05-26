@@ -14,7 +14,7 @@ export type PostSortType = 'latest' | 'views' | 'recommend'
 
 export type PostCategory = 'HELP' | 'STUDY' | 'TRADE' | 'LOST_FOUND' | 'TEAM_UP' | 'OTHER'
 
-export type MessageType = 'ORDER' | 'CHAT' | 'NOTICE' | 'SYSTEM'
+export type MessageType = 'SYSTEM' | 'TASK' | 'ORDER' | 'REVIEW' | 'REPORT' | 'CHAT' | 'NOTICE'
 
 export const userRoleLabels: Record<UserRole, string> = {
   USER: '普通用户',
@@ -48,4 +48,14 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   CONFIRMED: '进行中',
   COMPLETED: '已完成',
   CANCELLED: '已取消',
+}
+
+export const messageTypeLabels: Record<MessageType, string> = {
+  SYSTEM: '系统',
+  TASK: '任务',
+  ORDER: '订单',
+  REVIEW: '评价',
+  REPORT: '举报',
+  CHAT: '聊天',
+  NOTICE: '公告',
 }

@@ -66,7 +66,7 @@
         <h2><el-icon><Document /></el-icon> 加减分说明</h2>
         <div class="rule-box plus">
           <h3>加分项</h3>
-          <p><span>顺利完成任务（按订单金额/难度综合）</span><strong>+3 ~ +10分</strong></p>
+          <p><span>顺利完成任务（按订单金额/难度综合）</span><strong>+5分</strong></p>
           <p><span>获得互助双方好评</span><strong>+2分</strong></p>
           <p><span>高质量评价（内容详细、有帮助）</span><strong>+1分</strong></p>
           <p><span>连续完成多个任务（3单及以上）</span><strong>+2分</strong></p>
@@ -76,7 +76,7 @@
           <p><span>无故取消任务（发起方）</span><strong>-5分</strong></p>
           <p><span>无故取消任务（接单方）</span><strong>-3分</strong></p>
           <p><span>收到差评</span><strong>-5分</strong></p>
-          <p><span>违规行为（平台判定）</span><strong>-10 ~ -20分</strong></p>
+          <p><span>违规行为（平台判定）</span><strong>-10分</strong></p>
         </div>
       </section>
     </div>

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campushub.report.mapper.AdminStatsMapper">
+
+    <select id="selectDashboardStats" resultType="com.campushub.report.dto.AdminDashboardStatsDTO">
+        SELECT
+            (SELECT COUNT(1) FROM u_user WHERE is_deleted = false) AS totalUsers,
+            (SELECT COUNT(1) FROM t_user_verification WHERE status = 0) AS pendingVerifications,
+            (SELECT COUNT(1) FROM u_user WHERE status = 2 AND is_deleted = false) AS bannedUsers,
+            (SELECT COUNT(1) FROM t_task WHERE status = 0 AND is_deleted = false) AS openTasks,
+            (SELECT COUNT(1) FROM t_task WHERE status IN (1, 2) AND is_deleted = false) AS inProgressTasks,
+            (SELECT COUNT(1) FROM t_task WHERE status = 3 AND is_deleted = false) AS completedTasks,
+            (SELECT COUNT(1) FROM t_order WHERE is_deleted = false) AS totalOrders,
+            (SELECT COUNT(1) FROM t_order WHERE status = 2 AND is_deleted = false) AS completedOrders,
+            (SELECT COUNT(1) FROM t_report WHERE status = 0) AS pendingReports,
+            (SELECT COUNT(1) FROM t_report) AS totalReports,
+            (SELECT COUNT(1) FROM t_message WHERE is_read = false) AS unreadMessages,
+            (SELECT COUNT(1) FROM t_review) AS totalReviews,
+            COALESCE((SELECT AVG(rating) FROM t_review), 0) AS averageRating
+    </select>
+</mapper>

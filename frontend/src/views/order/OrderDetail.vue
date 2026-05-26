@@ -35,6 +35,7 @@
 
           <footer class="actions">
             <el-button @click="router.back()">返回</el-button>
+            <el-button v-if="isParticipant" @click="goReport">举报此订单</el-button>
             <el-button v-if="canConfirm" type="primary" :loading="submitting" @click="runAction('confirm')">
               确认订单
             </el-button>
@@ -46,6 +47,19 @@
             </el-button>
           </footer>
         </article>
+
+        <ChatPanel v-if="order && isParticipant" :order-id="order.orderId" />
+
+        <section v-if="order?.status === 'COMPLETED'" class="review-area">
+          <ReviewForm
+            v-if="canReview && reviewTarget"
+            :order-id="order.orderId"
+            :target-user-id="reviewTarget.userId"
+            :target-user-name="reviewTarget.name"
+            @submitted="handleReviewSubmitted"
+          />
+          <ReviewList :reviews="reviews" />
+        </section>
       </template>
     </el-skeleton>
   </section>
@@ -57,10 +71,14 @@ import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 
 import { cancelOrder, completeOrder, confirmOrder, getOrderDetail } from '@/api/order'
+import { getOrderReviews } from '@/api/review'
+import ChatPanel from '@/components/ChatPanel.vue'
 import OrderStatusBadge from '@/components/OrderStatusBadge.vue'
+import ReviewForm from '@/components/ReviewForm.vue'
+import ReviewList from '@/components/ReviewList.vue'
 import { useAuthStore } from '@/stores'
 import { taskCategoryLabels } from '@/types'
-import type { OrderDetailDTO } from '@/types'
+import type { OrderDetailDTO, ReviewDTO } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,27 +87,57 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const submitting = ref(false)
 const order = ref<OrderDetailDTO | null>(null)
+const reviews = ref<ReviewDTO[]>([])
+
+const currentUserId = computed(() => authStore.user?.userId)
+const isPoster = computed(() => order.value?.posterId === currentUserId.value)
+const isHelper = computed(() => order.value?.helperId === currentUserId.value)
+const isParticipant = computed(() => Boolean(isPoster.value || isHelper.value))
+
+const reviewTarget = computed(() => {
+  if (!order.value) return null
+  if (isPoster.value) {
+    return { userId: order.value.helperId, name: order.value.helperName }
+  }
+  if (isHelper.value) {
+    return { userId: order.value.posterId, name: order.value.posterName }
+  }
+  return null
+})
+
+const hasSubmittedReview = computed(() =>
+  reviews.value.some((review) => review.reviewerId === currentUserId.value),
+)
 
 const canConfirm = computed(
-  () =>
-    order.value?.status === 'PENDING' &&
-    authStore.user?.userId === order.value.posterId,
+  () => order.value?.status === 'PENDING' && isPoster.value,
 )
 const canComplete = computed(
-  () =>
-    order.value?.status === 'CONFIRMED' &&
-    (authStore.user?.userId === order.value.posterId || authStore.user?.userId === order.value.helperId),
+  () => order.value?.status === 'CONFIRMED' && isParticipant.value,
 )
 const canCancel = computed(
   () =>
     order.value !== null &&
-    (order.value.status === 'PENDING' || order.value.status === 'CONFIRMED'),
+    (order.value.status === 'PENDING' || order.value.status === 'CONFIRMED') &&
+    isParticipant.value,
 )
+const canReview = computed(
+  () => order.value?.status === 'COMPLETED' && isParticipant.value && !hasSubmittedReview.value,
+)
+
+const loadReviews = async () => {
+  if (!order.value || order.value.status !== 'COMPLETED') {
+    reviews.value = []
+    return
+  }
+  reviews.value = await getOrderReviews(order.value.orderId)
+}
 
 const loadOrder = async () => {
   loading.value = true
   try {
     order.value = await getOrderDetail(Number(route.params.orderId))
+    await loadReviews()
   } finally {
     loading.value = false
   }
@@ -115,12 +163,29 @@ const runAction = async (action: 'confirm' | 'complete' | 'cancel') => {
   }
 }
 
+const handleReviewSubmitted = (review: ReviewDTO) => {
+  reviews.value = [review, ...reviews.value]
+}
+
+const goReport = () => {
+  if (!order.value || !reviewTarget.value) return
+  router.push({
+    name: 'report-create',
+    query: {
+      targetType: 'ORDER',
+      targetId: String(order.value.orderId),
+      targetUserId: String(reviewTarget.value.userId),
+    },
+  })
+}
+
 onMounted(loadOrder)
 </script>
 
 <style scoped>
 .order-detail-page {
   display: grid;
+  gap: 18px;
 }
 
 .order-detail-card {
@@ -128,9 +193,9 @@ onMounted(loadOrder)
   gap: 20px;
   padding: 28px;
   border: 1px solid #e7edf7;
-  border-radius: 24px;
+  border-radius: 8px;
   background: #fff;
-  box-shadow: 0 22px 42px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
 }
 
 .top {
@@ -142,6 +207,11 @@ onMounted(loadOrder)
 .top h1,
 .top p {
   margin: 0;
+}
+
+.top h1 {
+  color: #111827;
+  font-size: 26px;
 }
 
 .top p {
@@ -170,7 +240,7 @@ onMounted(loadOrder)
 
 .info-grid > div {
   padding: 18px;
-  border-radius: 18px;
+  border-radius: 8px;
   background: #f8fbff;
 }
 
@@ -189,12 +259,20 @@ onMounted(loadOrder)
 
 .actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
 }
 
+.review-area {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+}
+
 @media (max-width: 900px) {
-  .top {
+  .top,
+  .review-area {
     grid-template-columns: 1fr;
   }
 
@@ -207,7 +285,6 @@ onMounted(loadOrder)
   }
 
   .actions {
-    flex-wrap: wrap;
     justify-content: flex-start;
   }
 }

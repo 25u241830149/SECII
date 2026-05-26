@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campushub.report.mapper.ReportMapper">
+
+    <resultMap id="ReportResultMap" type="com.campushub.report.entity.Report">
+        <id property="id" column="id"/>
+        <result property="reporterId" column="reporter_id"/>
+        <result property="targetUserId" column="target_user_id"/>
+        <result property="handlerId" column="handler_id"/>
+        <result property="taskId" column="task_id"/>
+        <result property="orderId" column="order_id"/>
+        <result property="postId" column="post_id"/>
+        <result property="commentId" column="comment_id"/>
+        <result property="targetType" column="target_type"/>
+        <result property="targetId" column="target_id"/>
+        <result property="reason" column="reason"/>
+        <result property="status" column="status"/>
+        <result property="result" column="result"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="TargetTypeCase">
+        CASE r.target_type
+            WHEN 0 THEN 'USER'
+            WHEN 1 THEN 'TASK'
+            WHEN 2 THEN 'ORDER'
+            WHEN 3 THEN 'POST'
+            ELSE 'COMMENT'
+        END
+    </sql>
+
+    <sql id="ReportStatusCase">
+        CASE r.status
+            WHEN 0 THEN 'PENDING'
+            WHEN 1 THEN 'HANDLED'
+            ELSE 'REJECTED'
+        END
+    </sql>
+
+    <sql id="ReportDetailSelect">
+        SELECT
+            r.id AS reportId,
+            reporter.id AS reporterId,
+            reporter.nickname AS reporterName,
+            target.id AS targetUserId,
+            target.nickname AS targetUserName,
+            handler.id AS handlerId,
+            handler.nickname AS handlerName,
+            r.task_id AS taskId,
+            r.order_id AS orderId,
+            r.post_id AS postId,
+            r.comment_id AS commentId,
+            <include refid="TargetTypeCase"/> AS targetType,
+            r.target_id AS targetId,
+            r.reason,
+            <include refid="ReportStatusCase"/> AS status,
+            r.result,
+            r.create_time AS createdAt,
+            r.update_time AS updatedAt
+        FROM t_report r
+        JOIN u_user reporter ON reporter.id = r.reporter_id AND reporter.is_deleted = false
+        JOIN u_user target ON target.id = r.target_user_id AND target.is_deleted = false
+        LEFT JOIN u_user handler ON handler.id = r.handler_id AND handler.is_deleted = false
+    </sql>
+
+    <insert id="insertReport" parameterType="com.campushub.report.entity.Report" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_report (
+            reporter_id,
+            target_user_id,
+            task_id,
+            order_id,
+            post_id,
+            comment_id,
+            target_type,
+            target_id,
+            reason,
+            status
+        ) VALUES (
+            #{reporterId},
+            #{targetUserId},
+            #{taskId},
+            #{orderId},
+            #{postId},
+            #{commentId},
+            #{targetType},
+            #{targetId},
+            #{reason},
+            #{status}
+        )
+    </insert>
+
+    <select id="selectReportById" resultMap="ReportResultMap">
+        SELECT id, reporter_id, target_user_id, handler_id, task_id, order_id, post_id, comment_id,
+               target_type, target_id, reason, status, result, create_time, update_time
+        FROM t_report
+        WHERE id = #{reportId}
+        LIMIT 1
+    </select>
+
+    <select id="selectReportDetail" resultType="com.campushub.report.dto.ReportDTO">
+        <include refid="ReportDetailSelect"/>
+        WHERE r.id = #{reportId}
+        LIMIT 1
+    </select>
+
+    <select id="selectReports" resultType="com.campushub.report.dto.ReportDTO">
+        <include refid="ReportDetailSelect"/>
+        <where>
+            <if test="status != null">
+                r.status = #{status}
+            </if>
+        </where>
+        ORDER BY r.create_time DESC
+        OFFSET #{offset}
+        LIMIT #{size}
+    </select>
+
+    <select id="countReports" resultType="long">
+        SELECT COUNT(1)
+        FROM t_report r
+        <where>
+            <if test="status != null">
+                r.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <update id="handleReport">
+        UPDATE t_report
+        SET handler_id = #{handlerId},
+            status = #{status},
+            result = #{result},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{reportId}
+          AND status = 0
+    </update>
+</mapper>

@@ -7,7 +7,6 @@ import { useAuthStore } from '@/stores'
 import HomeView from '@/views/home/Home.vue'
 import ForbiddenView from '@/views/system/ForbiddenView.vue'
 import NotFoundView from '@/views/system/NotFoundView.vue'
-import PlaceholderView from '@/views/system/PlaceholderView.vue'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -65,7 +64,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'messages',
         name: 'messages',
-        component: PlaceholderView,
+        component: () => import('@/views/message/MessageCenter.vue'),
         meta: { title: '消息中心', module: '消息模块', requiresAuth: true },
       },
       {
@@ -125,7 +124,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'reports/create',
         name: 'report-create',
-        component: PlaceholderView,
+        component: () => import('@/views/report/ReportCreate.vue'),
         meta: { title: '提交举报', module: '举报模块', requiresAuth: true },
       },
     ],
@@ -165,31 +164,31 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         name: 'admin-dashboard',
-        component: PlaceholderView,
+        component: () => import('@/views/admin/StatsDashboard.vue'),
         meta: { title: '数据看板', module: '管理后台' },
       },
       {
         path: 'users',
         name: 'admin-users',
-        component: PlaceholderView,
+        component: () => import('@/views/admin/UserManagement.vue'),
         meta: { title: '用户管理', module: '管理后台' },
       },
       {
         path: 'tasks',
         name: 'admin-tasks',
-        component: PlaceholderView,
+        component: () => import('@/views/admin/TaskModeration.vue'),
         meta: { title: '任务管理', module: '管理后台' },
       },
       {
         path: 'reports',
         name: 'admin-reports',
-        component: PlaceholderView,
+        component: () => import('@/views/admin/ReportCenter.vue'),
         meta: { title: '举报处理', module: '管理后台' },
       },
       {
         path: 'notices',
         name: 'admin-notices',
-        component: PlaceholderView,
+        component: () => import('@/views/admin/NoticeManagement.vue'),
         meta: { title: '公告管理', module: '管理后台' },
       },
     ],

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campushub.message.mapper.MessageMapper">
+
+    <sql id="MessageTypeCase">
+        CASE type
+            WHEN 0 THEN 'SYSTEM'
+            WHEN 1 THEN 'TASK'
+            WHEN 2 THEN 'ORDER'
+            WHEN 3 THEN 'REVIEW'
+            ELSE 'REPORT'
+        END
+    </sql>
+
+    <insert id="insertMessage" parameterType="com.campushub.message.entity.Message" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_message (
+            receiver_id,
+            type,
+            title,
+            content,
+            is_read
+        ) VALUES (
+            #{receiverId},
+            #{type},
+            #{title},
+            #{content},
+            #{read}
+        )
+    </insert>
+
+    <select id="selectMessages" resultType="com.campushub.message.dto.MessageDTO">
+        SELECT
+            id AS messageId,
+            receiver_id AS receiverId,
+            <include refid="MessageTypeCase"/> AS type,
+            title,
+            content,
+            is_read AS read,
+            create_time AS createdAt
+        FROM t_message
+        WHERE receiver_id = #{receiverId}
+          <if test="type != null">
+            AND type = #{type}
+          </if>
+          <if test="unread != null and unread">
+            AND is_read = false
+          </if>
+          <if test="unread != null and !unread">
+            AND is_read = true
+          </if>
+        ORDER BY create_time DESC
+        OFFSET #{offset}
+        LIMIT #{size}
+    </select>
+
+    <select id="countMessages" resultType="long">
+        SELECT COUNT(1)
+        FROM t_message
+        WHERE receiver_id = #{receiverId}
+          <if test="type != null">
+            AND type = #{type}
+          </if>
+          <if test="unread != null and unread">
+            AND is_read = false
+          </if>
+          <if test="unread != null and !unread">
+            AND is_read = true
+          </if>
+    </select>
+
+    <select id="countUnread" resultType="long">
+        SELECT COUNT(1)
+        FROM t_message
+        WHERE receiver_id = #{receiverId}
+          AND is_read = false
+    </select>
+
+    <update id="markRead">
+        UPDATE t_message
+        SET is_read = true
+        WHERE id = #{messageId}
+          AND receiver_id = #{receiverId}
+    </update>
+
+    <update id="markAllRead">
+        UPDATE t_message
+        SET is_read = true
+        WHERE receiver_id = #{receiverId}
+          AND is_read = false
+    </update>
+
+    <delete id="deleteMessage">
+        DELETE FROM t_message
+        WHERE id = #{messageId}
+          AND receiver_id = #{receiverId}
+    </delete>
+</mapper>

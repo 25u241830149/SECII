@@ -8,7 +8,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @MapperScan({
         "com.campushub.user.mapper",
         "com.campushub.task.mapper",
-        "com.campushub.order.mapper"
+        "com.campushub.order.mapper",
+        "com.campushub.review.mapper",
+        "com.campushub.message.mapper",
+        "com.campushub.report.mapper"
 })
 public class CampusHubApplication {
 

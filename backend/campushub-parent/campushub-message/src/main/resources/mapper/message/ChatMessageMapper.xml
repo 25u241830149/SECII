@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campushub.message.mapper.ChatMessageMapper">
+
+    <insert id="insertChatMessage" parameterType="com.campushub.message.entity.ChatMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_chat_message (
+            order_id,
+            sender_id,
+            receiver_id,
+            content,
+            is_read
+        ) VALUES (
+            #{orderId},
+            #{senderId},
+            #{receiverId},
+            #{content},
+            #{read}
+        )
+    </insert>
+
+    <select id="selectChatMessages" resultType="com.campushub.message.dto.ChatMessageDTO">
+        SELECT
+            cm.id AS messageId,
+            cm.order_id AS orderId,
+            sender.id AS senderId,
+            sender.nickname AS senderName,
+            sender.avatar_url AS senderAvatarUrl,
+            receiver.id AS receiverId,
+            receiver.nickname AS receiverName,
+            receiver.avatar_url AS receiverAvatarUrl,
+            cm.content,
+            cm.is_read AS read,
+            cm.create_time AS createdAt
+        FROM t_chat_message cm
+        JOIN u_user sender ON sender.id = cm.sender_id AND sender.is_deleted = false
+        JOIN u_user receiver ON receiver.id = cm.receiver_id AND receiver.is_deleted = false
+        WHERE cm.order_id = #{orderId}
+        ORDER BY cm.create_time ASC
+    </select>
+
+    <update id="markOrderMessagesRead">
+        UPDATE t_chat_message
+        SET is_read = true
+        WHERE order_id = #{orderId}
+          AND receiver_id = #{receiverId}
+          AND is_read = false
+    </update>
+</mapper>

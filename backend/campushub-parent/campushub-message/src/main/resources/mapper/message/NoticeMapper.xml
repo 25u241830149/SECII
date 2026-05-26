@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.campushub.message.mapper.NoticeMapper">
+
+    <resultMap id="NoticeResultMap" type="com.campushub.message.entity.Notice">
+        <id property="id" column="id"/>
+        <result property="publisherId" column="publisher_id"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="NoticeDetailSelect">
+        SELECT
+            n.id AS noticeId,
+            n.publisher_id AS publisherId,
+            u.nickname AS publisherName,
+            n.title,
+            n.content,
+            n.create_time AS createdAt,
+            n.update_time AS updatedAt
+        FROM t_notice n
+        JOIN u_user u ON u.id = n.publisher_id AND u.is_deleted = false
+    </sql>
+
+    <insert id="insertNotice" parameterType="com.campushub.message.entity.Notice" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_notice (
+            publisher_id,
+            title,
+            content
+        ) VALUES (
+            #{publisherId},
+            #{title},
+            #{content}
+        )
+    </insert>
+
+    <update id="updateNotice" parameterType="com.campushub.message.entity.Notice">
+        UPDATE t_notice
+        SET title = #{title},
+            content = #{content},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteNotice">
+        DELETE FROM t_notice
+        WHERE id = #{noticeId}
+    </delete>
+
+    <select id="selectNoticeById" resultMap="NoticeResultMap">
+        SELECT id, publisher_id, title, content, create_time, update_time
+        FROM t_notice
+        WHERE id = #{noticeId}
+        LIMIT 1
+    </select>
+
+    <select id="selectNoticeDetail" resultType="com.campushub.message.dto.NoticeDTO">
+        <include refid="NoticeDetailSelect"/>
+        WHERE n.id = #{noticeId}
+        LIMIT 1
+    </select>
+
+    <select id="selectNotices" resultType="com.campushub.message.dto.NoticeDTO">
+        <include refid="NoticeDetailSelect"/>
+        ORDER BY n.create_time DESC
+        OFFSET #{offset}
+        LIMIT #{size}
+    </select>
+
+    <select id="countNotices" resultType="long">
+        SELECT COUNT(1)
+        FROM t_notice
+    </select>
+
+    <select id="selectLatestNotices" resultType="com.campushub.message.dto.NoticeDTO">
+        <include refid="NoticeDetailSelect"/>
+        ORDER BY n.create_time DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

@@ -54,7 +54,7 @@
     </section>
 
     <footer class="public-footer">
-      <span>© 2024 CampusHub 校园互助平台</span>
+      <span>© 2026 CampusHub 校园互助平台</span>
       <span>帮助中心</span>
       <span>隐私政策</span>
       <span>服务条款</span>

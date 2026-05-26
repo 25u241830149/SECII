@@ -1,5 +1,7 @@
 export * from './common'
 export * from './enums'
 export * from './message'
+export * from './report'
+export * from './review'
 export * from './task'
 export * from './user'
