@@ -46,6 +46,12 @@ export interface UserProfileUpdateRequest {
   avatarUrl?: string
 }
 
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface UploadResultDTO {
   fileUrl: string
   originalFilename?: string

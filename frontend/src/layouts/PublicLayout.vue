@@ -1,45 +1,52 @@
 <template>
   <main class="public-layout">
-    <section class="public-card">
+    <section class="public-card" :class="{ 'public-card--register': isRegisterPage }">
+      <figure class="campus-art" aria-hidden="true">
+        <img :src="authIllustration" alt="" />
+      </figure>
+
       <div class="brand-panel">
         <RouterLink class="brand" to="/">
-          <span class="brand-logo">C</span>
+          <CampusHubLogo size="lg" />
           <span class="brand-name">CampusHub</span>
           <span class="brand-subtitle">校园互助平台</span>
         </RouterLink>
 
         <div class="hero-copy">
-          <p>{{ route.meta.publicEyebrow || '欢迎回来' }}</p>
-          <h1>{{ route.meta.publicTitle || '校园互助，让学习更轻松，让生活更美好' }}</h1>
-        </div>
-
-        <div class="campus-art" aria-hidden="true">
-          <span class="paper-plane"></span>
-          <span class="cloud cloud-a"></span>
-          <span class="cloud cloud-b"></span>
-          <span class="building building-a"></span>
-          <span class="building building-b"></span>
-          <span class="tower"></span>
-          <span class="road"></span>
+          <h1>{{ route.meta.publicEyebrow || '欢迎回来' }}</h1>
+          <p>{{ route.meta.publicTitle || '校园互助，让学习更轻松，让生活更美好' }}</p>
         </div>
 
         <div class="feature-strip">
           <div class="feature-item">
-            <span class="feature-icon shield">✓</span>
+            <span class="feature-icon shield">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3.5 18.5 6v5.2c0 4.1-2.6 7.6-6.5 9.3-3.9-1.7-6.5-5.2-6.5-9.3V6L12 3.5Z" />
+                <path d="m9.1 12.1 2 2 4-4.2" />
+              </svg>
+            </span>
             <div>
               <strong>安全可靠</strong>
               <p>多重安全防护，保障账号安全</p>
             </div>
           </div>
           <div class="feature-item">
-            <span class="feature-icon heart">♡</span>
+            <span class="feature-icon heart">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M20 8.6c0 4.9-8 9.4-8 9.4s-8-4.5-8-9.4A4.3 4.3 0 0 1 11.2 5l.8.9.8-.9A4.3 4.3 0 0 1 20 8.6Z" />
+              </svg>
+            </span>
             <div>
               <strong>互助友爱</strong>
               <p>连接校园互助，温暖彼此</p>
             </div>
           </div>
           <div class="feature-item">
-            <span class="feature-icon bolt">↯</span>
+            <span class="feature-icon bolt">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M13.5 2.8 5.8 13h5.8l-1.1 8.2 7.7-10.4h-5.7l1-8Z" />
+              </svg>
+            </span>
             <div>
               <strong>高效便捷</strong>
               <p>快速发布需求，及时获得帮助</p>
@@ -63,9 +70,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+import authIllustration from '@/assets/illustation.png'
+import CampusHubLogo from '@/components/CampusHubLogo.vue'
+
 const route = useRoute()
+const isRegisterPage = computed(() => route.name === 'register')
 </script>
 
 <style scoped>
@@ -81,26 +93,40 @@ const route = useRoute()
 }
 
 .public-card {
+  position: relative;
   display: grid;
   width: min(100%, 1480px);
-  min-height: 680px;
+  min-height: 704px;
   grid-template-columns: minmax(0, 1.35fr) minmax(420px, 0.75fr);
-  gap: 56px;
+  gap: 54px;
   align-self: center;
   justify-self: center;
-  padding: 58px 64px;
+  padding: 58px 68px 46px;
   border: 1px solid rgba(216, 225, 239, 0.9);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 24px 72px rgba(15, 23, 42, 0.1);
+  overflow: hidden;
+}
+
+.public-card::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 47%, rgba(255, 255, 255, 0.82) 66%, rgba(255, 255, 255, 0.98) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.34) 34%, rgba(255, 255, 255, 0.02) 76%);
+  content: "";
+  pointer-events: none;
 }
 
 .brand-panel {
   position: relative;
+  z-index: 2;
   display: flex;
   min-width: 0;
   flex-direction: column;
-  overflow: hidden;
+  min-height: 600px;
 }
 
 .brand {
@@ -111,28 +137,15 @@ const route = useRoute()
   text-decoration: none;
 }
 
-.brand-logo {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #1478ff, #6b48ff);
-  color: #fff;
-  font-size: 26px;
-  font-weight: 800;
-  box-shadow: 0 14px 28px rgba(64, 110, 255, 0.28);
-}
-
 .brand-name {
   color: #1168e8;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 800;
 }
 
 .brand-subtitle {
   color: #111827;
-  font-size: 22px;
+  font-size: 23px;
   font-weight: 700;
 }
 
@@ -140,196 +153,122 @@ const route = useRoute()
   position: relative;
   z-index: 1;
   width: min(100%, 720px);
-  margin-top: 58px;
-}
-
-.hero-copy p {
-  margin: 0 0 14px;
-  color: #53627a;
-  font-size: 20px;
-  font-weight: 600;
+  margin-top: 54px;
 }
 
 .hero-copy h1 {
   margin: 0;
   color: #0f1b33;
-  font-size: 56px;
-  line-height: 1.14;
+  font-size: 60px;
+  line-height: 1.08;
+  font-weight: 800;
+}
+
+.hero-copy p {
+  margin: 22px 0 0;
+  color: #53627a;
+  font-size: 22px;
+  font-weight: 600;
 }
 
 .campus-art {
-  position: relative;
-  flex: 1;
-  min-height: 320px;
-  margin-top: 18px;
+  position: absolute;
+  z-index: 0;
+  bottom: 80px;
+  left: 0;
+  width: 66%;
+  height: 67%;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.campus-art::before,
+.campus-art::after {
+  position: absolute;
+  z-index: 1;
+  content: "";
+  pointer-events: none;
 }
 
 .campus-art::before {
-  position: absolute;
+  top: 0;
   right: 0;
-  bottom: 18px;
   left: 0;
-  height: 138px;
-  border-radius: 58% 42% 0 0;
-  background: linear-gradient(180deg, rgba(221, 232, 255, 0.72), rgba(255, 255, 255, 0.95));
-  content: "";
+  height: 26%;
+  background: linear-gradient(180deg, #fff 0%, rgba(255, 255, 255, 0) 100%);
 }
 
-.paper-plane {
-  position: absolute;
-  top: 14px;
-  right: 130px;
-  width: 0;
-  height: 0;
-  border-top: 28px solid transparent;
-  border-bottom: 12px solid transparent;
-  border-left: 70px solid rgba(119, 143, 255, 0.45);
-  transform: rotate(-28deg);
-}
-
-.paper-plane::after {
-  position: absolute;
-  top: -3px;
-  left: -68px;
-  width: 92px;
-  border-top: 3px dashed rgba(124, 143, 240, 0.34);
-  border-radius: 999px;
-  content: "";
-  transform: translate(-92px, 48px) rotate(18deg);
-}
-
-.cloud {
-  position: absolute;
-  width: 58px;
-  height: 18px;
-  border-radius: 99px;
-  background: rgba(185, 202, 255, 0.32);
-}
-
-.cloud::before,
-.cloud::after {
-  position: absolute;
-  bottom: 4px;
-  border-radius: 50%;
-  background: inherit;
-  content: "";
-}
-
-.cloud::before {
-  left: 8px;
-  width: 22px;
-  height: 22px;
-}
-
-.cloud::after {
-  right: 9px;
-  width: 28px;
-  height: 28px;
-}
-
-.cloud-a {
-  top: 116px;
-  left: 180px;
-}
-
-.cloud-b {
-  top: 92px;
-  right: 64px;
-}
-
-.building,
-.tower {
-  position: absolute;
-  bottom: 58px;
-  border: 4px solid rgba(118, 145, 235, 0.28);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(173, 195, 255, 0.34));
-  box-shadow: 0 18px 36px rgba(64, 96, 180, 0.12);
-}
-
-.building-a {
-  left: 155px;
-  width: 156px;
-  height: 124px;
-}
-
-.building-b {
-  left: 300px;
-  width: 180px;
-  height: 164px;
-}
-
-.tower {
-  left: 510px;
-  width: 78px;
-  height: 218px;
-}
-
-.tower::before {
-  position: absolute;
-  top: -54px;
-  left: -4px;
-  width: 78px;
-  height: 54px;
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
-  background: rgba(127, 143, 241, 0.55);
-  content: "";
-}
-
-.road {
-  position: absolute;
-  right: 120px;
+.campus-art::after {
+  top: 0;
+  right: 0;
   bottom: 0;
-  width: 360px;
-  height: 92px;
-  border-radius: 50% 50% 0 0;
-  border-top: 30px solid rgba(128, 147, 232, 0.3);
-  transform: skewX(-20deg);
+  width: 24%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, #fff 100%);
+}
+
+.campus-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center bottom;
 }
 
 .feature-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
-  padding-top: 22px;
+  width: min(100%, 760px);
+  gap: 32px;
+  margin-top: auto;
+  padding: 0 0 2px;
 }
 
 .feature-item {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .feature-icon {
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  font-size: 22px;
-  font-weight: 800;
+}
+
+.feature-icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .shield {
   color: #1268ed;
-  background: #e9f2ff;
+  background: #e8f1ff;
 }
 
 .heart {
   color: #7c3aed;
-  background: #f2ecff;
+  background: #f1eaff;
 }
 
 .bolt {
-  color: #12a673;
-  background: #e9f8f1;
+  color: #13a87d;
+  background: #e7f7f1;
 }
 
 .feature-item strong {
   display: block;
   color: #111827;
   font-size: 15px;
+  font-weight: 800;
 }
 
 .feature-item p {
@@ -339,13 +278,62 @@ const route = useRoute()
 }
 
 .auth-panel {
+  position: relative;
+  z-index: 2;
   align-self: center;
+  box-sizing: border-box;
+  height: 650px;
   min-width: 0;
   padding: 42px;
   border: 1px solid #e5ebf4;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 24px 52px rgba(15, 23, 42, 0.1);
+}
+
+.public-card--register .auth-panel {
+  align-self: center;
+  padding: 34px 38px;
+  overflow: hidden;
+}
+
+.public-card--register .auth-panel :deep(.auth-view) {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.public-card--register .auth-panel :deep(.auth-form) {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+  scrollbar-color: transparent transparent;
+  scrollbar-width: thin;
+  transition: scrollbar-color 0.2s ease;
+}
+
+.public-card--register .auth-panel :deep(.auth-form::-webkit-scrollbar) {
+  width: 6px;
+}
+
+.public-card--register .auth-panel :deep(.auth-form::-webkit-scrollbar-thumb) {
+  border-radius: 999px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.public-card--register .auth-panel :deep(.auth-form.is-scrolling),
+.public-card--register .auth-panel :deep(.auth-form:hover),
+.public-card--register .auth-panel :deep(.auth-form:focus-within) {
+  scrollbar-color: #b6bfcd transparent;
+}
+
+.public-card--register .auth-panel :deep(.auth-form.is-scrolling::-webkit-scrollbar-thumb),
+.public-card--register .auth-panel :deep(.auth-form:hover::-webkit-scrollbar-thumb),
+.public-card--register .auth-panel :deep(.auth-form:focus-within::-webkit-scrollbar-thumb) {
+  background: #b6bfcd;
 }
 
 .public-footer {
@@ -370,7 +358,9 @@ const route = useRoute()
   }
 
   .campus-art {
-    min-height: 260px;
+    width: 100%;
+    height: 48%;
+    opacity: 0.32;
   }
 
   .auth-panel {

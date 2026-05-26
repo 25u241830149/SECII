@@ -118,6 +118,7 @@
           <li><span class="dot red"></span>已取消<strong>{{ allOrderStats.cancelled }}</strong></li>
         </ul>
       </section>
+
     </div>
   </section>
 </template>

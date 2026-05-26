@@ -2,8 +2,10 @@ package com.campushub.user.service;
 
 import com.campushub.common.constant.ErrorCode;
 import com.campushub.common.exception.BusinessException;
+import com.campushub.common.utils.EncryptUtils;
 import com.campushub.user.dto.AdminBanRequest;
 import com.campushub.user.dto.AdminBanResultDTO;
+import com.campushub.user.dto.ChangePasswordRequest;
 import com.campushub.user.dto.UserHomeDTO;
 import com.campushub.user.dto.UserProfileDTO;
 import com.campushub.user.dto.UserProfileUpdateRequest;
@@ -98,6 +100,36 @@ public class UserService {
         return getProfile(userId);
     }
 
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordRequest request) {
+        User user = requireActiveUser(userId);
+        if (request == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "密码信息不能为空");
+        }
+
+        String currentPassword = request.currentPassword();
+        String newPassword = request.newPassword();
+        String confirmPassword = request.confirmPassword();
+
+        if (isBlank(currentPassword) || isBlank(newPassword) || isBlank(confirmPassword)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "请完整填写密码信息");
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "两次输入的新密码不一致");
+        }
+        if (!EncryptUtils.matchesPassword(currentPassword, user.getPassword())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "当前密码错误");
+        }
+        if (EncryptUtils.matchesPassword(newPassword, user.getPassword())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "新密码不能与当前密码相同");
+        }
+
+        User update = new User();
+        update.setId(userId);
+        update.setPassword(EncryptUtils.encryptPassword(newPassword));
+        userMapper.updateById(update);
+    }
+
     private static String requiredTrim(String value, String message) {
         String trimmed = optionalTrim(value);
         if (trimmed == null) {
@@ -143,10 +175,10 @@ public class UserService {
         requireActiveUser(userId);
         // TODO(order): reject deletion when the user still has unfinished orders,
         // matching the API contract's 422 account-cancellation rule.
-        User update = new User();
-        update.setId(userId);
-        update.setIsDeleted(true);
-        userMapper.updateById(update);
+        int deleted = userMapper.deleteById(userId);
+        if (deleted == 0) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
+        }
     }
 
     @Transactional
@@ -174,5 +206,9 @@ public class UserService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
         }
         return user;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

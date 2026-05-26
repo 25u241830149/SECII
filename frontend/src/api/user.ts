@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './request'
 import type {
+  ChangePasswordRequest,
   CreditDTO,
   EntityId,
   LoginRequest,
@@ -33,6 +34,10 @@ export function updateUserProfile(userId: EntityId, payload: UserProfileUpdateRe
   })
 }
 
+export function changePassword(payload: ChangePasswordRequest) {
+  return apiPut<void, ChangePasswordRequest>('/user/password', payload)
+}
+
 export function getUserCredit(userId: EntityId) {
   return apiGet<CreditDTO>('/user/credit', {
     params: { userId },
@@ -51,8 +56,6 @@ export function submitVerification(payload: VerificationSubmitRequest) {
   return apiPost<VerificationStatusDTO, VerificationSubmitRequest>('/user/verification/submit', payload)
 }
 
-export function deleteAccount(userId: EntityId) {
-  return apiDelete<void>('/user/account', {
-    params: { userId },
-  })
+export function deleteAccount() {
+  return apiDelete<void>('/user/account')
 }

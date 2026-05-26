@@ -26,7 +26,8 @@ public class TaskQueryService {
             Integer page,
             Integer size,
             Long publisherId,
-            Long viewerId
+            Long viewerId,
+            Boolean excludeCompleted
     ) {
         int normalizedPage = ValidateUtils.normalizePage(page);
         int normalizedSize = ValidateUtils.normalizePageSize(size);
@@ -41,10 +42,16 @@ public class TaskQueryService {
                 publisherId,
                 viewerId,
                 normalizedSort,
+                Boolean.TRUE.equals(excludeCompleted),
                 offset,
                 normalizedSize
         );
-        long total = taskMapper.countTaskList(categoryCode, normalizedKeyword, publisherId);
+        long total = taskMapper.countTaskList(
+                categoryCode,
+                normalizedKeyword,
+                publisherId,
+                Boolean.TRUE.equals(excludeCompleted)
+        );
         return PageResponse.of(records, total, normalizedPage, normalizedSize);
     }
 

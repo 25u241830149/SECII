@@ -20,7 +20,7 @@ export const useFeedStore = defineStore('feed', {
     keyword: '',
     sort: 'time',
     page: 1,
-    size: 8,
+    size: 10,
     total: 0,
     tasks: [],
     loading: false,
@@ -41,6 +41,7 @@ export const useFeedStore = defineStore('feed', {
           sort: this.sort,
           page: this.page,
           size: this.size,
+          excludeCompleted: true,
         })
         this.tasks = result.records
         this.total = result.total

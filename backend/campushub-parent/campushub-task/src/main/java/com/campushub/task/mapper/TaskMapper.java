@@ -24,6 +24,7 @@ public interface TaskMapper {
             @Param("publisherId") Long publisherId,
             @Param("viewerId") Long viewerId,
             @Param("sort") String sort,
+            @Param("excludeCompleted") boolean excludeCompleted,
             @Param("offset") int offset,
             @Param("size") int size
     );
@@ -31,7 +32,8 @@ public interface TaskMapper {
     long countTaskList(
             @Param("category") Integer category,
             @Param("keyword") String keyword,
-            @Param("publisherId") Long publisherId
+            @Param("publisherId") Long publisherId,
+            @Param("excludeCompleted") boolean excludeCompleted
     );
 
     List<TaskListDTO> selectFavoriteTaskList(

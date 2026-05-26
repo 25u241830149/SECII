@@ -190,6 +190,9 @@
           <if test="publisherId != null">
             AND t.publisher_id = #{publisherId}
           </if>
+          <if test="excludeCompleted">
+            AND t.status != 3
+          </if>
           <if test="keyword != null and keyword != ''">
             AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))
           </if>
@@ -214,6 +217,9 @@
           </if>
           <if test="publisherId != null">
             AND t.publisher_id = #{publisherId}
+          </if>
+          <if test="excludeCompleted">
+            AND t.status != 3
           </if>
           <if test="keyword != null and keyword != ''">
             AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))

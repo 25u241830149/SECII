@@ -2,7 +2,7 @@
   <div class="admin-layout">
     <aside class="admin-sidebar">
       <RouterLink class="admin-brand" to="/">
-        <span>C</span>
+        <CampusHubLogo size="sm" />
         <strong>CampusHub Admin</strong>
       </RouterLink>
 
@@ -34,6 +34,7 @@
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 
+import CampusHubLogo from '@/components/CampusHubLogo.vue'
 import { useAuthStore, useUserStore } from '@/stores'
 
 const route = useRoute()
@@ -78,17 +79,6 @@ const handleLogout = () => {
   margin-bottom: 28px;
   color: #111827;
   text-decoration: none;
-}
-
-.admin-brand span {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #1478ff, #6b48ff);
-  color: #fff;
-  font-weight: 800;
 }
 
 nav {

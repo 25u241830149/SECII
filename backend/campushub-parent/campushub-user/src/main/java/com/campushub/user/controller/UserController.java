@@ -2,6 +2,7 @@ package com.campushub.user.controller;
 
 import com.campushub.common.response.ApiResponse;
 import com.campushub.common.security.SecurityUtils;
+import com.campushub.user.dto.ChangePasswordRequest;
 import com.campushub.user.dto.CreditDTO;
 import com.campushub.user.dto.UserHomeDTO;
 import com.campushub.user.dto.UserProfileDTO;
@@ -79,9 +80,16 @@ public class UserController {
         return ApiResponse.success(verificationService.submit(request));
     }
 
+    @PutMapping("/password")
+    public ApiResponse<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        userService.changePassword(userId, request);
+        return ApiResponse.success();
+    }
+
     @DeleteMapping("/account")
-    public ApiResponse<Void> deleteAccount(@RequestParam Long userId) {
-        SecurityUtils.requireCurrentUser(userId);
+    public ApiResponse<Void> deleteAccount() {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
         userService.deleteAccount(userId);
         return ApiResponse.success();
     }

@@ -91,6 +91,59 @@
         </div>
       </el-form>
     </el-card>
+
+    <el-card class="profile-card security-card" shadow="never">
+      <header>
+        <div>
+          <h2><el-icon><Lock /></el-icon> 账号安全</h2>
+          <p>定期更新密码，保护账号安全。修改成功后，下次登录请使用新密码。</p>
+        </div>
+        <el-button type="primary" plain @click="openPasswordDialog">修改密码</el-button>
+      </header>
+    </el-card>
+
+    <el-dialog
+      v-model="passwordDialogVisible"
+      title="修改密码"
+      width="420px"
+      destroy-on-close
+    >
+      <el-form class="password-form" label-position="top" @submit.prevent>
+        <el-form-item label="当前密码">
+          <el-input
+            v-model="passwordForm.currentPassword"
+            type="password"
+            placeholder="请输入当前密码"
+            autocomplete="current-password"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input
+            v-model="passwordForm.newPassword"
+            type="password"
+            placeholder="请输入新密码"
+            autocomplete="new-password"
+            show-password
+          />
+        </el-form-item>
+        <el-form-item label="确认新密码">
+          <el-input
+            v-model="passwordForm.confirmPassword"
+            type="password"
+            placeholder="请再次输入新密码"
+            autocomplete="new-password"
+            show-password
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="passwordDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="changingPassword" @click="submitPasswordChange">
+          保存修改
+        </el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -98,7 +151,9 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormRules, UploadFile, UploadProps } from 'element-plus'
+import { Lock } from '@element-plus/icons-vue'
 
+import { changePassword } from '@/api/user'
 import { uploadAvatar } from '@/api/upload'
 import { useAuthStore, useUserStore } from '@/stores'
 import { resolveAssetUrl } from '@/utils/asset'
@@ -110,11 +165,18 @@ const userStore = useUserStore()
 const loading = ref(false)
 const saving = ref(false)
 const uploadingAvatar = ref(false)
+const passwordDialogVisible = ref(false)
+const changingPassword = ref(false)
 const form = reactive({
   email: '',
   phone: '',
   nickname: '',
   avatarUrl: '',
+})
+const passwordForm = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
 })
 
 const rules: FormRules = {
@@ -216,6 +278,48 @@ onMounted(async () => {
 
 const resetForm = () => {
   syncForm()
+}
+
+const resetPasswordForm = () => {
+  passwordForm.currentPassword = ''
+  passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
+}
+
+const openPasswordDialog = () => {
+  resetPasswordForm()
+  passwordDialogVisible.value = true
+}
+
+const submitPasswordChange = async () => {
+  const currentPassword = passwordForm.currentPassword
+  const newPassword = passwordForm.newPassword
+  const confirmPassword = passwordForm.confirmPassword
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    ElMessage.warning('请完整填写密码信息')
+    return
+  }
+
+  if (newPassword !== confirmPassword) {
+    ElMessage.warning('两次输入的新密码不一致')
+    return
+  }
+
+  if (newPassword === currentPassword) {
+    ElMessage.warning('新密码不能与当前密码相同')
+    return
+  }
+
+  changingPassword.value = true
+  try {
+    await changePassword({ currentPassword, newPassword, confirmPassword })
+    ElMessage.success('密码已修改')
+    passwordDialogVisible.value = false
+    resetPasswordForm()
+  } finally {
+    changingPassword.value = false
+  }
 }
 
 const saveProfile = async () => {
@@ -340,6 +444,37 @@ const saveProfile = async () => {
   max-width: 760px;
 }
 
+.security-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.security-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: #111827;
+  font-size: 18px;
+}
+
+.security-card p {
+  margin: 8px 0 0;
+  color: #687386;
+  line-height: 1.7;
+}
+
+.security-card :deep(.el-button) {
+  flex: 0 0 auto;
+}
+
+.password-form {
+  display: grid;
+  gap: 4px;
+}
+
 .loading-state {
   padding: 8px;
 }
@@ -427,6 +562,11 @@ const saveProfile = async () => {
 
 @media (max-width: 720px) {
   .page-header {
+    flex-direction: column;
+  }
+
+  .security-card header {
+    align-items: flex-start;
     flex-direction: column;
   }
 

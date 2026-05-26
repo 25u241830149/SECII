@@ -11,16 +11,36 @@ interface AuthState {
   redirectPath: string
 }
 
+interface LoginOptions {
+  rememberMe?: boolean
+}
+
+const readStoredValue = (key: string) => {
+  if (typeof window === 'undefined') return null
+
+  return window.localStorage.getItem(key) || window.sessionStorage.getItem(key)
+}
+
+const clearStoredSession = () => {
+  if (typeof window === 'undefined') return
+
+  window.localStorage.removeItem(TOKEN_STORAGE_KEY)
+  window.localStorage.removeItem(USER_STORAGE_KEY)
+  window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  window.sessionStorage.removeItem(USER_STORAGE_KEY)
+}
+
 const readJson = <T>(key: string): T | null => {
   if (typeof window === 'undefined') return null
 
-  const value = window.localStorage.getItem(key)
+  const value = readStoredValue(key)
   if (!value) return null
 
   try {
     return JSON.parse(value) as T
   } catch {
     window.localStorage.removeItem(key)
+    window.sessionStorage.removeItem(key)
     return null
   }
 }
@@ -45,33 +65,34 @@ export const useAuthStore = defineStore('auth', {
         return
       }
 
-      this.token = window.localStorage.getItem(TOKEN_STORAGE_KEY) || ''
+      this.token = readStoredValue(TOKEN_STORAGE_KEY) || ''
       this.user = readJson<UserInfoDTO>(USER_STORAGE_KEY)
       this.initialized = true
     },
 
-    setSession(session: AuthSession) {
+    setSession(session: AuthSession, rememberMe = false) {
       this.token = session.token
       this.user = session.user
 
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(TOKEN_STORAGE_KEY, session.token)
+        clearStoredSession()
+
+        const storage = rememberMe ? window.localStorage : window.sessionStorage
+        storage.setItem(TOKEN_STORAGE_KEY, session.token)
 
         if (session.user) {
-          window.localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(session.user))
-        } else {
-          window.localStorage.removeItem(USER_STORAGE_KEY)
+          storage.setItem(USER_STORAGE_KEY, JSON.stringify(session.user))
         }
       }
     },
 
-    async login(payload: LoginRequest) {
+    async login(payload: LoginRequest, options: LoginOptions = {}) {
       const result = await loginUser(payload)
 
       this.setSession({
         token: result.token,
         user: result.user,
-      })
+      }, Boolean(options.rememberMe))
 
       return result
     },
@@ -81,8 +102,7 @@ export const useAuthStore = defineStore('auth', {
       this.user = null
 
       if (typeof window !== 'undefined') {
-        window.localStorage.removeItem(TOKEN_STORAGE_KEY)
-        window.localStorage.removeItem(USER_STORAGE_KEY)
+        clearStoredSession()
       }
     },
 

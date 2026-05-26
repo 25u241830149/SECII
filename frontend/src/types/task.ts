@@ -29,6 +29,7 @@ export interface TaskListQuery extends PageQuery {
   category?: TaskCategory
   sort?: SortType
   publisherId?: EntityId
+  excludeCompleted?: boolean
 }
 
 export interface FavoriteTaskQuery extends TaskListQuery {

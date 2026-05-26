@@ -137,7 +137,7 @@ const deleteCurrentAccount = async () => {
 
   deleting.value = true
   try {
-    await deleteAccount(currentUser.userId)
+    await deleteAccount()
     userStore.setProfile(null)
     authStore.logout()
     ElMessage.success('账号已注销')

@@ -5,11 +5,24 @@
       <p>登录你的 CampusHub 账号</p>
     </header>
 
-    <el-form class="auth-form" :model="form" label-position="top" @submit.prevent>
-      <el-form-item label="学号">
-        <el-input v-model="form.studentNo" size="large" placeholder="请输入学号" autocomplete="username" />
+    <el-form
+      ref="formRef"
+      class="auth-form"
+      :model="form"
+      :rules="rules"
+      label-position="top"
+      @submit.prevent="submit"
+    >
+      <el-form-item label="学号" prop="studentNo">
+        <el-input
+          v-model="form.studentNo"
+          size="large"
+          placeholder="请输入学号"
+          autocomplete="username"
+          :disabled="loading"
+        />
       </el-form-item>
-      <el-form-item label="密码">
+      <el-form-item label="密码" prop="password">
         <el-input
           v-model="form.password"
           size="large"
@@ -17,21 +30,26 @@
           placeholder="请输入密码"
           autocomplete="current-password"
           show-password
+          :disabled="loading"
         />
       </el-form-item>
 
       <div class="form-row">
-        <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-        <RouterLink to="/forgot-password">忘记密码？</RouterLink>
+        <el-checkbox v-model="rememberMe" :disabled="loading">记住我</el-checkbox>
+        <el-button class="text-action" type="primary" link :disabled="loading" @click="showForgotPasswordTodo">
+          忘记密码？
+        </el-button>
       </div>
 
-      <el-button class="primary-action" type="primary" size="large" :loading="loading" @click="submit">
+      <el-button class="primary-action" type="primary" size="large" native-type="submit" :loading="loading">
         登录
       </el-button>
 
       <div class="divider"><span>或</span></div>
 
-      <el-button class="outline-action" size="large">使用统一身份认证登录</el-button>
+      <el-button class="outline-action" size="large" :disabled="loading" @click="showSsoUnavailable">
+        使用统一身份认证登录
+      </el-button>
 
       <p class="switch-line">
         还没有账号？
@@ -43,7 +61,7 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores'
@@ -58,9 +76,33 @@ interface LoginForm {
 
 const loading = ref(false)
 const rememberMe = ref(false)
+const formRef = ref<FormInstance>()
 const form = reactive<LoginForm>({
   studentNo: '',
   password: '',
+})
+
+const validatePassword = (
+  _rule: unknown,
+  value: string,
+  callback: (error?: Error) => void,
+) => {
+  if (!value) {
+    callback(new Error('请输入密码'))
+    return
+  }
+
+  if (value.length < 6) {
+    callback(new Error('密码长度不能少于 6 位'))
+    return
+  }
+
+  callback()
+}
+
+const rules = reactive<FormRules<LoginForm>>({
+  studentNo: [{ required: true, message: '请输入学号', trigger: 'blur' }],
+  password: [{ validator: validatePassword, trigger: 'blur' }],
 })
 
 const getRedirectPath = () => {
@@ -68,21 +110,34 @@ const getRedirectPath = () => {
   return typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/'
 }
 
+const showSsoUnavailable = () => {
+  ElMessage.info('统一身份认证暂未接入')
+}
+
+const showForgotPasswordTodo = () => {
+  ElMessage.info('忘记密码流程暂未开放，请先联系管理员处理')
+}
+
 const submit = async () => {
+  if (loading.value) return
+
   const studentId = form.studentNo.trim()
   const password = form.password
 
-  if (!studentId || !password) {
-    ElMessage.warning('请填写学号和密码')
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) {
+    ElMessage.warning('请按要求填写登录信息')
     return
   }
 
   loading.value = true
 
   try {
-    await authStore.login({ studentId, password })
+    await authStore.login({ studentId, password }, { rememberMe: rememberMe.value })
     ElMessage.success('登录成功')
     await router.push(getRedirectPath())
+  } catch {
+    // The request interceptor already displays the login error toast.
   } finally {
     loading.value = false
   }
@@ -110,6 +165,10 @@ p {
   gap: 6px;
 }
 
+.auth-form :deep(.el-form-item__label::before) {
+  display: none;
+}
+
 .form-row,
 .switch-line {
   display: flex;
@@ -131,6 +190,12 @@ a {
 .outline-action {
   width: 100%;
   border-radius: 8px;
+}
+
+.text-action {
+  height: auto;
+  padding: 0;
+  font-weight: 700;
 }
 
 .primary-action {

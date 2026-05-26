@@ -1,11 +1,18 @@
 <template>
-  <div class="auth-view">
+  <div class="auth-view register-view">
     <header>
       <h1>注册</h1>
       <p>创建你的 CampusHub 账号</p>
     </header>
 
-    <el-form class="auth-form" :model="form" label-position="top" @submit.prevent>
+    <el-form
+      class="auth-form"
+      :class="{ 'is-scrolling': formScrolling }"
+      :model="form"
+      label-position="top"
+      @scroll.passive="handleFormScroll"
+      @submit.prevent
+    >
       <el-form-item label="学号">
         <el-input v-model="form.studentNo" size="large" placeholder="请输入学号" autocomplete="username" />
       </el-form-item>
@@ -30,7 +37,7 @@
         >
           <el-button>选择学生证图片</el-button>
           <template #tip>
-            <span class="upload-tip">支持 JPG、PNG、WebP，注册时会真实上传学生证材料。</span>
+            <span class="upload-tip">支持 JPG、PNG、WebP等格式</span>
           </template>
         </el-upload>
       </el-form-item>
@@ -98,8 +105,10 @@ interface RegisterForm {
 const MAX_STUDENT_CARD_SIZE = 5 * 1024 * 1024
 
 const loading = ref(false)
+const formScrolling = ref(false)
 const selectedStudentCard = ref<File | null>(null)
 const studentCardFiles = ref<UploadUserFile[]>([])
+let formScrollTimer: ReturnType<typeof window.setTimeout> | undefined
 
 const form = reactive<RegisterForm>({
   studentNo: '',
@@ -143,6 +152,18 @@ const handleStudentCardRemove: UploadProps['onRemove'] = () => {
   selectedStudentCard.value = null
 }
 
+const handleFormScroll = () => {
+  formScrolling.value = true
+
+  if (formScrollTimer) {
+    window.clearTimeout(formScrollTimer)
+  }
+
+  formScrollTimer = window.setTimeout(() => {
+    formScrolling.value = false
+  }, 900)
+}
+
 const submit = async () => {
   const studentId = form.studentNo.trim()
   const nickname = form.nickname.trim()
@@ -151,6 +172,11 @@ const submit = async () => {
 
   if (!studentId || !nickname || !realName || !department || !form.password) {
     ElMessage.warning('请完整填写注册信息')
+    return
+  }
+
+  if (form.password.length < 6) {
+    ElMessage.warning('密码长度不能少于 6 位')
     return
   }
 
@@ -191,13 +217,14 @@ const submit = async () => {
 
 <style scoped>
 .auth-view header {
-  margin-bottom: 22px;
+  flex: 0 0 auto;
+  margin-bottom: 16px;
 }
 
 h1 {
   margin: 0;
   color: #111827;
-  font-size: 34px;
+  font-size: 32px;
 }
 
 p {
@@ -207,12 +234,33 @@ p {
 
 .auth-form {
   display: grid;
-  gap: 2px;
+  gap: 0;
+}
+
+.auth-form :deep(.el-form-item__label::before) {
+  display: none;
+}
+
+.auth-form :deep(.el-form-item) {
+  margin-bottom: 12px;
+}
+
+.auth-form :deep(.el-form-item__label) {
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+
+.auth-form :deep(.el-input__wrapper) {
+  min-height: 42px;
+}
+
+.auth-form :deep(.el-input__inner) {
+  height: 42px;
 }
 
 .primary-action {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 4px;
   border: 0;
   border-radius: 8px;
   background: linear-gradient(135deg, #1478ff, #6b48ff);
@@ -224,10 +272,10 @@ p {
 
 .upload-tip {
   display: block;
-  margin-top: 6px;
+  margin-top: 4px;
   color: #8b95a5;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.35;
 }
 
 a {
@@ -240,6 +288,6 @@ a {
   display: flex;
   justify-content: center;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 12px;
 }
 </style>

@@ -71,10 +71,20 @@ public class TaskController {
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
-            @RequestParam(required = false) Long publisherId
+            @RequestParam(required = false) Long publisherId,
+            @RequestParam(defaultValue = "false") Boolean excludeCompleted
     ) {
         Long viewerId = SecurityUtils.getCurrentUserId().orElse(null);
-        return ApiResponse.success(taskQueryService.list(category, keyword, sort, page, size, publisherId, viewerId));
+        return ApiResponse.success(taskQueryService.list(
+                category,
+                keyword,
+                sort,
+                page,
+                size,
+                publisherId,
+                viewerId,
+                excludeCompleted
+        ));
     }
 
     @PostMapping("/{taskId}/favorite")

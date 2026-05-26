@@ -22,13 +22,19 @@ export class ApiError<T = unknown> extends Error {
 
 const getStoredToken = () => {
   if (typeof window === 'undefined') return ''
-  return window.localStorage.getItem(TOKEN_STORAGE_KEY) || ''
+  return (
+    window.localStorage.getItem(TOKEN_STORAGE_KEY) ||
+    window.sessionStorage.getItem(TOKEN_STORAGE_KEY) ||
+    ''
+  )
 }
 
 const clearStoredSession = () => {
   if (typeof window === 'undefined') return
   window.localStorage.removeItem(TOKEN_STORAGE_KEY)
   window.localStorage.removeItem(USER_STORAGE_KEY)
+  window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  window.sessionStorage.removeItem(USER_STORAGE_KEY)
 }
 
 const shouldRedirectToLogin = () => {

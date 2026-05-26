@@ -20,6 +20,7 @@ public class AuthService {
 
     private static final int ROLE_USER = 0;
     private static final int DEFAULT_CREDIT_SCORE = 100;
+    private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int USER_STATUS_PENDING_VERIFICATION = 1;
     private static final int USER_STATUS_BANNED = 2;
     private static final int VERIFICATION_PENDING = 0;
@@ -90,6 +91,9 @@ public class AuthService {
                 || isBlank(request.department())
                 || isBlank(request.studentCardImage())) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "注册信息不完整");
+        }
+        if (request.password().length() < MIN_PASSWORD_LENGTH) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "密码长度不能少于 6 位");
         }
     }
 
