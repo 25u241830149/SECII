@@ -1,6 +1,7 @@
 package com.campushub.task.dto;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 
 public record TaskCreateRequest(
         String title,
@@ -9,6 +10,13 @@ public record TaskCreateRequest(
         String location,
         BigDecimal reward,
         Double longitude,
-        Double latitude
+        Double latitude,
+        OffsetDateTime deadlineTime,
+        String itemImageUrl,
+        BigDecimal originalPrice,
+        Integer teamTotalMembers,
+        Integer teamCurrentMembers,
+        OffsetDateTime activityTime,
+        String activityNote
 ) {
 }

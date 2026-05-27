@@ -2,30 +2,48 @@
   <section class="orders-page">
     <article class="toolbar-card">
       <div>
-        <h1>订单列表</h1>
-        <p>集中查看我发布和我接取的订单，待接单、进行中、已完成状态统一管理。</p>
+        <h1>我的订单</h1>
+        <p>按状态查看已发布和已接取的需求，处理确认、履约、评价与取消记录。</p>
       </div>
       <el-button :loading="loading" @click="loadItems">刷新</el-button>
     </article>
 
     <article class="list-card">
-      <el-tabs v-model="activeTab" @tab-change="reload">
-        <el-tab-pane label="全部" name="all" />
-        <el-tab-pane label="我发布的" name="published" />
-        <el-tab-pane label="我接取的" name="accepted" />
-      </el-tabs>
+      <div class="role-tabs">
+        <button
+          v-for="tab in roleTabs"
+          :key="tab.value"
+          type="button"
+          :class="{ active: activeRole === tab.value }"
+          @click="switchRole(tab.value)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div class="status-tabs">
+        <button
+          v-for="tab in statusTabs"
+          :key="tab.value"
+          type="button"
+          :class="{ active: activeStatus === tab.value }"
+          @click="switchStatus(tab.value)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
 
       <el-skeleton :loading="loading" animated :rows="6">
         <template #default>
-          <el-empty v-if="!visibleItems.length" description="暂无记录" />
+          <el-empty v-if="!items.length" description="暂无记录" />
           <div v-else class="order-list">
-            <article v-for="item in visibleItems" :key="item.key" class="order-row">
+            <article v-for="item in items" :key="item.key" class="order-row">
               <div class="main">
                 <h2>{{ item.title }}</h2>
                 <p>{{ taskCategoryLabels[item.category] }} · {{ item.location || '校内待定地点' }}</p>
                 <small>{{ item.meta }}</small>
               </div>
-              <div class="price">¥{{ Number(item.reward).toFixed(2) }}</div>
+              <div class="price">{{ formatReward(item) }}</div>
               <span :class="['status-badge', item.tone]">{{ item.statusText }}</span>
               <el-button @click="router.push(item.detailPath)">{{ item.actionText }}</el-button>
             </article>
@@ -55,10 +73,12 @@ import { getOrders } from '@/api/order'
 import { getPublishedTasks } from '@/api/task'
 import { useAuthStore } from '@/stores'
 import { orderStatusLabels, taskCategoryLabels, taskStatusLabels } from '@/types'
-import type { EntityId, OrderListDTO, TaskCategory, TaskListDTO } from '@/types'
+import type { OrderListDTO, OrderStatus, TaskCategory, TaskListDTO, TaskStatus } from '@/types'
 
-type TabName = 'all' | 'published' | 'accepted'
-type BadgeTone = 'orange' | 'green' | 'blue' | 'red' | 'gray'
+type RoleFilter = 'published' | 'accepted'
+type StatusFilter = 'ALL' | 'OPEN' | 'PENDING' | 'CONFIRMED' | 'WAITING_REVIEW' | 'COMPLETED' | 'CANCELLED'
+type TaskQueryStatus = Exclude<TaskStatus, 'OFFLINE'>
+type BadgeTone = 'orange' | 'green' | 'blue' | 'red' | 'gray' | 'purple'
 
 interface ListItem {
   key: string
@@ -78,44 +98,61 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const loading = ref(false)
-const activeTab = ref<TabName>('all')
+const activeRole = ref<RoleFilter>('published')
+const activeStatus = ref<StatusFilter>('ALL')
 const page = ref(1)
-const pageSize = 8
+const pageSize = 10
 const total = ref(0)
-const publishedTasks = ref<TaskListDTO[]>([])
-const acceptedOrders = ref<OrderListDTO[]>([])
-const posterOrders = ref<OrderListDTO[]>([])
+const items = ref<ListItem[]>([])
 
-const posterOrderByTaskId = computed(() => {
-  const map = new Map<EntityId, OrderListDTO>()
-  posterOrders.value.forEach((order) => map.set(order.taskId, order))
-  return map
-})
+const roleTabs: Array<{ label: string; value: RoleFilter }> = [
+  { label: '我的发布', value: 'published' },
+  { label: '我的接取', value: 'accepted' },
+]
 
-const visibleItems = computed(() => {
-  if (activeTab.value === 'accepted') {
-    return acceptedOrders.value.map(orderToItem)
-  }
+const allStatusTabs: Array<{ label: string; value: StatusFilter }> = [
+  { label: '全部', value: 'ALL' },
+  { label: '待接单', value: 'OPEN' },
+  { label: '待确认', value: 'PENDING' },
+  { label: '进行中', value: 'CONFIRMED' },
+  { label: '待评价', value: 'WAITING_REVIEW' },
+  { label: '已完成', value: 'COMPLETED' },
+  { label: '已取消', value: 'CANCELLED' },
+]
 
-  const taskItems = publishedTasks.value.map(taskToItem)
-  if (activeTab.value === 'published') {
-    return taskItems
-  }
+const statusTabs = computed(() => (
+  activeRole.value === 'published'
+    ? allStatusTabs
+    : allStatusTabs.filter((tab) => tab.value !== 'OPEN')
+))
 
-  return [...taskItems, ...acceptedOrders.value.map(orderToItem)]
-    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice((page.value - 1) * pageSize, page.value * pageSize)
-})
+const taskStatusByFilter: Partial<Record<StatusFilter, TaskQueryStatus>> = {
+  OPEN: 'OPEN',
+  PENDING: 'PENDING_CONFIRM',
+  CONFIRMED: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+}
 
-const taskTone = (status: TaskListDTO['status']): BadgeTone => {
+const orderStatusByFilter: Partial<Record<StatusFilter, OrderStatus>> = {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  WAITING_REVIEW: 'WAITING_REVIEW',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED',
+}
+
+const taskTone = (status: TaskStatus): BadgeTone => {
   if (status === 'OPEN') return 'orange'
+  if (status === 'PENDING_CONFIRM') return 'purple'
   if (status === 'IN_PROGRESS') return 'green'
   if (status === 'COMPLETED') return 'blue'
   if (status === 'CANCELLED' || status === 'OFFLINE') return 'red'
   return 'gray'
 }
 
-const orderTone = (status: OrderListDTO['status']): BadgeTone => {
+const orderTone = (status: OrderStatus, waitingReview = false): BadgeTone => {
+  if (waitingReview) return 'purple'
   if (status === 'PENDING') return 'orange'
   if (status === 'CONFIRMED') return 'green'
   if (status === 'COMPLETED') return 'blue'
@@ -123,112 +160,123 @@ const orderTone = (status: OrderListDTO['status']): BadgeTone => {
   return 'gray'
 }
 
-const taskToItem = (task: TaskListDTO): ListItem => {
-  const relatedOrder = posterOrderByTaskId.value.get(task.taskId)
-  return {
-    key: `published-${task.taskId}`,
-    title: task.title,
-    category: task.category,
-    location: task.location,
-    reward: task.reward,
-    statusText: task.status === 'OPEN' ? '待接单' : taskStatusLabels[task.status],
-    tone: taskTone(task.status),
-    meta: relatedOrder
-      ? `订单号 #${relatedOrder.orderId} · 帮手：${relatedOrder.helperName}`
-      : `发布者：${task.publisherName} · 暂未接单`,
-    createdAt: task.createdAt,
-    detailPath: relatedOrder ? `/orders/${relatedOrder.orderId}` : `/tasks/${task.taskId}`,
-    actionText: '查看详情',
-  }
-}
+const taskToItem = (task: TaskListDTO): ListItem => ({
+  key: `task-${task.taskId}`,
+  title: task.title,
+  category: task.category,
+  location: task.location,
+  reward: task.reward,
+  statusText: taskStatusLabels[task.status],
+  tone: taskTone(task.status),
+  meta: task.category === 'TEAM_UP'
+    ? `组队进度：${task.teamCurrentMembers ?? 0}/${task.teamTotalMembers ?? 0}人`
+    : `发布者：${task.publisherName}`,
+  createdAt: task.createdAt,
+  detailPath: `/tasks/${task.taskId}`,
+  actionText: '查看详情',
+})
 
-const orderToItem = (order: OrderListDTO): ListItem => ({
-  key: `accepted-${order.orderId}`,
+const orderToItem = (order: OrderListDTO, waitingReview = false): ListItem => ({
+  key: `order-${order.orderId}`,
   title: order.taskTitle,
   category: order.taskCategory,
   location: order.taskLocation,
   reward: order.reward,
-  statusText: orderStatusLabels[order.status],
-  tone: orderTone(order.status),
-  meta: `发布者：${order.posterName} · 帮手：${order.helperName}`,
+  statusText: waitingReview ? '待评价' : orderStatusLabels[order.status],
+  tone: orderTone(order.status, waitingReview),
+  meta: order.taskCategory === 'TEAM_UP'
+    ? `发布者：${order.posterName} · 组队进度：${order.teamCurrentMembers ?? 0}/${order.teamTotalMembers ?? 0}人`
+    : `发布者：${order.posterName} · 帮手：${order.helperName}`,
   createdAt: order.createdAt,
   detailPath: `/orders/${order.orderId}`,
-  actionText: '查看详情',
+  actionText: waitingReview ? '去评价' : '查看详情',
 })
 
-const loadPublishedTasks = async (paged: boolean) => {
-  if (!authStore.user) return { records: [], total: 0 }
-  return getPublishedTasks({
-    userId: authStore.user.userId,
-    page: paged ? page.value : 1,
-    size: paged ? pageSize : 50,
-  })
+const sortItems = (records: ListItem[]) =>
+  records.sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+
+const formatReward = (item: ListItem) => {
+  if (item.category === 'TEAM_UP') return '组队'
+  const rewardNumber = Number(item.reward)
+  if (Number.isNaN(rewardNumber)) return String(item.reward || '无偿')
+  if (rewardNumber === 0) return '无偿'
+  return `¥${rewardNumber.toFixed(2)}`
 }
 
-const loadAcceptedOrders = async (paged: boolean) => {
-  if (!authStore.user) return { records: [], total: 0 }
-  return getOrders({
+const loadTaskItems = async (status?: TaskQueryStatus) => {
+  if (!authStore.user) return { records: [] as ListItem[], total: 0 }
+  const result = await getPublishedTasks({
     userId: authStore.user.userId,
-    role: 'helper',
-    page: paged ? page.value : 1,
-    size: paged ? pageSize : 50,
+    ...(status ? { status } : {}),
+    page: page.value,
+    size: pageSize,
   })
+  return {
+    records: result.records.map(taskToItem),
+    total: result.total,
+  }
 }
 
-const loadPosterOrders = async () => {
-  if (!authStore.user) return
+const loadOrderItems = async (role: 'poster' | 'helper', status?: OrderStatus) => {
+  if (!authStore.user) return { records: [] as ListItem[], total: 0 }
   const result = await getOrders({
     userId: authStore.user.userId,
-    role: 'poster',
-    page: 1,
-    size: 50,
+    role,
+    ...(status ? { status } : {}),
+    page: page.value,
+    size: pageSize,
   })
-  posterOrders.value = result.records
+  return {
+    records: result.records.map((order) => orderToItem(order, status === 'WAITING_REVIEW')),
+    total: result.total,
+  }
+}
+
+const loadPublishedItems = async () => {
+  if (activeStatus.value === 'WAITING_REVIEW') {
+    return loadOrderItems('poster', 'WAITING_REVIEW')
+  }
+
+  return loadTaskItems(taskStatusByFilter[activeStatus.value])
+}
+
+const loadAcceptedItems = async () => {
+  if (activeStatus.value === 'OPEN') {
+    return loadOrderItems('helper')
+  }
+
+  return loadOrderItems('helper', orderStatusByFilter[activeStatus.value])
 }
 
 const loadItems = async () => {
   if (!authStore.user) return
   loading.value = true
   try {
-    await loadPosterOrders()
+    const result = activeRole.value === 'published'
+      ? await loadPublishedItems()
+      : await loadAcceptedItems()
 
-    if (activeTab.value === 'published') {
-      const result = await loadPublishedTasks(true)
-      publishedTasks.value = result.records
-      acceptedOrders.value = []
-      total.value = result.total
-      return
-    }
-
-    if (activeTab.value === 'accepted') {
-      const result = await loadAcceptedOrders(true)
-      acceptedOrders.value = result.records
-      publishedTasks.value = []
-      total.value = result.total
-      return
-    }
-
-    const [tasksResult, ordersResult] = await Promise.all([
-      loadPublishedTasks(false),
-      loadAcceptedOrders(false),
-    ])
-    publishedTasks.value = tasksResult.records
-    acceptedOrders.value = ordersResult.records
-    total.value = tasksResult.records.length + ordersResult.records.length
+    items.value = sortItems(result.records)
+    total.value = result.total
   } finally {
     loading.value = false
   }
 }
 
-const reload = () => {
+const switchRole = (role: RoleFilter) => {
+  activeRole.value = role
+  activeStatus.value = 'ALL'
+  page.value = 1
+  loadItems()
+}
+
+const switchStatus = (status: StatusFilter) => {
+  activeStatus.value = status
   page.value = 1
   loadItems()
 }
 
 const handlePageChange = () => {
-  if (activeTab.value === 'all') {
-    return
-  }
   loadItems()
 }
 
@@ -238,7 +286,10 @@ onMounted(loadItems)
 <style scoped>
 .orders-page {
   display: grid;
+  height: calc(100vh - 122px);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 18px;
+  min-height: 0;
 }
 
 .toolbar-card,
@@ -272,9 +323,74 @@ onMounted(loadItems)
   color: #64748b;
 }
 
+.list-card {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.list-card :deep(.el-skeleton) {
+  min-height: 0;
+  flex: 1;
+}
+
+.list-card :deep(.el-skeleton__content) {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.role-tabs,
+.status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.role-tabs {
+  margin-bottom: 12px;
+  padding: 4px;
+  border-radius: 8px;
+  background: #f5f8fc;
+}
+
+.status-tabs {
+  margin-bottom: 16px;
+}
+
+.role-tabs button,
+.status-tabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #dfe6f2;
+  border-radius: 8px;
+  background: #fff;
+  color: #4b5563;
+  cursor: pointer;
+  font: inherit;
+}
+
+.role-tabs button {
+  min-width: 120px;
+}
+
+.role-tabs button.active,
+.status-tabs button.active {
+  border-color: #b9d8ff;
+  background: #edf5ff;
+  color: #1268ed;
+  font-weight: 700;
+}
+
 .order-list {
   display: grid;
   gap: 14px;
+  min-height: 0;
+  flex: 1;
+  align-content: start;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
 .order-row {
@@ -337,6 +453,11 @@ onMounted(loadItems)
   color: #1d4ed8;
 }
 
+.status-badge.purple {
+  background: #f3efff;
+  color: #7c3aed;
+}
+
 .status-badge.red {
   background: #fff1f2;
   color: #dc2626;
@@ -349,6 +470,7 @@ onMounted(loadItems)
 
 .pager {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -357,6 +479,10 @@ onMounted(loadItems)
 }
 
 @media (max-width: 900px) {
+  .orders-page {
+    height: auto;
+  }
+
   .toolbar-card,
   .order-row,
   .pager {

@@ -6,6 +6,7 @@ import com.campushub.common.security.SecurityUtils;
 import com.campushub.order.dto.GrabOrderRequest;
 import com.campushub.order.dto.OrderDetailDTO;
 import com.campushub.order.dto.OrderListDTO;
+import com.campushub.order.dto.OrderStatsDTO;
 import com.campushub.order.service.GrabService;
 import com.campushub.order.service.OrderService;
 import com.campushub.order.service.OrderStatusService;
@@ -57,6 +58,16 @@ public class OrderController {
     public ApiResponse<OrderDetailDTO> cancel(@PathVariable Long orderId) {
         Long currentUserId = SecurityUtils.getRequiredCurrentUserId();
         return ApiResponse.success(orderStatusService.cancel(orderId, currentUserId));
+    }
+
+    @GetMapping("/summary/stats")
+    public ApiResponse<OrderStatsDTO> summaryStats(@RequestParam Long userId) {
+        return ApiResponse.success(orderService.stats(userId));
+    }
+
+    @GetMapping("/stats")
+    public ApiResponse<OrderStatsDTO> stats(@RequestParam Long userId) {
+        return ApiResponse.success(orderService.stats(userId));
     }
 
     @GetMapping("/{orderId}")

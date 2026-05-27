@@ -2,6 +2,7 @@ package com.campushub.task.mapper;
 
 import com.campushub.task.dto.TaskDetailDTO;
 import com.campushub.task.dto.TaskListDTO;
+import com.campushub.task.dto.TaskStatsDTO;
 import com.campushub.task.entity.Task;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
@@ -24,6 +25,9 @@ public interface TaskMapper {
             @Param("publisherId") Long publisherId,
             @Param("viewerId") Long viewerId,
             @Param("sort") String sort,
+            @Param("status") String status,
+            @Param("rewardType") String rewardType,
+            @Param("locationType") String locationType,
             @Param("excludeCompleted") boolean excludeCompleted,
             @Param("offset") int offset,
             @Param("size") int size
@@ -33,6 +37,9 @@ public interface TaskMapper {
             @Param("category") Integer category,
             @Param("keyword") String keyword,
             @Param("publisherId") Long publisherId,
+            @Param("status") String status,
+            @Param("rewardType") String rewardType,
+            @Param("locationType") String locationType,
             @Param("excludeCompleted") boolean excludeCompleted
     );
 
@@ -59,5 +66,9 @@ public interface TaskMapper {
 
     int forceUpdateTaskStatus(@Param("taskId") Long taskId, @Param("newStatus") Integer newStatus);
 
+    int incrementTeamCurrentMembers(@Param("taskId") Long taskId);
+
     long countPublishedByUser(@Param("userId") Long userId);
+
+    TaskStatsDTO selectTaskStats();
 }

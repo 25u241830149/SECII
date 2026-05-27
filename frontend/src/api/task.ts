@@ -8,10 +8,15 @@ import type {
   TaskListDTO,
   TaskListQuery,
   TaskMutationPayload,
+  TaskStatsDTO,
 } from '@/types'
 
 export function getTasks(query: TaskListQuery = {}) {
   return apiGet<PageResponse<TaskListDTO>>('/tasks', { params: query })
+}
+
+export function getTaskStats() {
+  return apiGet<TaskStatsDTO>('/tasks/stats')
 }
 
 export function getTaskDetail(taskId: EntityId) {

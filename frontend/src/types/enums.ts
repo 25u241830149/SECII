@@ -4,9 +4,9 @@ export type VerificationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export type TaskCategory = 'EXPRESS' | 'STUDY' | 'SECOND_HAND' | 'TEAM_UP' | 'OTHER'
 
-export type TaskStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'OFFLINE'
+export type TaskStatus = 'OPEN' | 'PENDING_CONFIRM' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'OFFLINE'
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'WAITING_REVIEW'
 
 export type SortType = 'time' | 'hot'
 
@@ -37,6 +37,7 @@ export const taskCategoryLabels: Record<TaskCategory, string> = {
 
 export const taskStatusLabels: Record<TaskStatus, string> = {
   OPEN: '待接单',
+  PENDING_CONFIRM: '待确认',
   IN_PROGRESS: '进行中',
   COMPLETED: '已完成',
   CANCELLED: '已取消',
@@ -48,6 +49,7 @@ export const orderStatusLabels: Record<OrderStatus, string> = {
   CONFIRMED: '进行中',
   COMPLETED: '已完成',
   CANCELLED: '已取消',
+  WAITING_REVIEW: '待评价',
 }
 
 export const messageTypeLabels: Record<MessageType, string> = {

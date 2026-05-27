@@ -7,6 +7,7 @@ import com.campushub.task.dto.TaskCreateRequest;
 import com.campushub.task.dto.TaskDetailDTO;
 import com.campushub.task.dto.TaskFavoriteResultDTO;
 import com.campushub.task.dto.TaskListDTO;
+import com.campushub.task.dto.TaskStatsDTO;
 import com.campushub.task.dto.TaskUpdateRequest;
 import com.campushub.task.service.TaskFavoriteService;
 import com.campushub.task.service.TaskQueryService;
@@ -58,12 +59,6 @@ public class TaskController {
         return ApiResponse.success();
     }
 
-    @GetMapping("/{taskId}")
-    public ApiResponse<TaskDetailDTO> detail(@PathVariable Long taskId) {
-        Long viewerId = SecurityUtils.getCurrentUserId().orElse(null);
-        return ApiResponse.success(taskQueryService.getDetail(taskId, viewerId));
-    }
-
     @GetMapping
     public ApiResponse<PageResponse<TaskListDTO>> list(
             @RequestParam(required = false) String category,
@@ -72,6 +67,9 @@ public class TaskController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size,
             @RequestParam(required = false) Long publisherId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String rewardType,
+            @RequestParam(required = false) String locationType,
             @RequestParam(defaultValue = "false") Boolean excludeCompleted
     ) {
         Long viewerId = SecurityUtils.getCurrentUserId().orElse(null);
@@ -83,20 +81,16 @@ public class TaskController {
                 size,
                 publisherId,
                 viewerId,
+                status,
+                rewardType,
+                locationType,
                 excludeCompleted
         ));
     }
 
-    @PostMapping("/{taskId}/favorite")
-    public ApiResponse<TaskFavoriteResultDTO> favorite(@PathVariable Long taskId) {
-        Long userId = SecurityUtils.getRequiredCurrentUserId();
-        return ApiResponse.success(taskFavoriteService.favorite(taskId, userId));
-    }
-
-    @DeleteMapping("/{taskId}/favorite")
-    public ApiResponse<TaskFavoriteResultDTO> unfavorite(@PathVariable Long taskId) {
-        Long userId = SecurityUtils.getRequiredCurrentUserId();
-        return ApiResponse.success(taskFavoriteService.unfavorite(taskId, userId));
+    @GetMapping("/stats")
+    public ApiResponse<TaskStatsDTO> stats() {
+        return ApiResponse.success(taskQueryService.stats());
     }
 
     @GetMapping("/favorites")
@@ -111,4 +105,23 @@ public class TaskController {
         SecurityUtils.requireCurrentUser(userId);
         return ApiResponse.success(taskFavoriteService.favorites(userId, category, keyword, sort, page, size));
     }
+
+    @GetMapping("/{taskId}")
+    public ApiResponse<TaskDetailDTO> detail(@PathVariable Long taskId) {
+        Long viewerId = SecurityUtils.getCurrentUserId().orElse(null);
+        return ApiResponse.success(taskQueryService.getDetail(taskId, viewerId));
+    }
+
+    @PostMapping("/{taskId}/favorite")
+    public ApiResponse<TaskFavoriteResultDTO> favorite(@PathVariable Long taskId) {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        return ApiResponse.success(taskFavoriteService.favorite(taskId, userId));
+    }
+
+    @DeleteMapping("/{taskId}/favorite")
+    public ApiResponse<TaskFavoriteResultDTO> unfavorite(@PathVariable Long taskId) {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        return ApiResponse.success(taskFavoriteService.unfavorite(taskId, userId));
+    }
+
 }

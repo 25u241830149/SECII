@@ -340,3 +340,41 @@ http://127.0.0.1:5173
 - 开发环境配置：`docs/help_document/setup.md`
 - API 规范文档：`docs/P3/API规范文档.md`
 - 架构设计文档：`docs/P2/架构设计文档.md`
+
+## 快速启动指令
+
+在项目根目录先启动数据库和 Redis：
+
+```powershell
+docker compose up -d
+```
+
+启动后端服务：
+
+```powershell
+cd backend/campushub-parent
+mvn -pl campushub-bootstrap -am -DskipTests package
+java -jar campushub-bootstrap/target/campushub-bootstrap-0.0.1-SNAPSHOT.jar
+```
+
+另开一个终端，启动前端服务：
+
+```powershell
+cd frontend
+npm.cmd install
+npm.cmd run dev -- --host 127.0.0.1
+```
+
+访问地址：
+
+```text
+前端：http://127.0.0.1:5173/
+后端：http://localhost:8080
+Swagger：http://localhost:8080/swagger-ui.html
+```
+
+停止数据库和 Redis：
+
+```powershell
+docker compose down
+```

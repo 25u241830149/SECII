@@ -4,10 +4,15 @@ import com.campushub.common.constant.ErrorCode;
 import com.campushub.common.exception.BusinessException;
 import com.campushub.order.dto.OrderDetailDTO;
 import com.campushub.order.entity.Order;
+import com.campushub.order.event.OrderCancelledEvent;
 import com.campushub.order.event.OrderCompletedEvent;
 import com.campushub.order.event.OrderConfirmedEvent;
 import com.campushub.order.mapper.OrderMapper;
+import com.campushub.task.entity.Task;
+import com.campushub.task.service.TaskCodecs;
+import com.campushub.task.service.TaskService;
 import com.campushub.task.service.TaskStatusService;
+import java.util.List;
 import java.util.Objects;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -19,17 +24,20 @@ public class OrderStatusService {
     private final OrderMapper orderMapper;
     private final OrderService orderService;
     private final TaskStatusService taskStatusService;
+    private final TaskService taskService;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public OrderStatusService(
             OrderMapper orderMapper,
             OrderService orderService,
             TaskStatusService taskStatusService,
+            TaskService taskService,
             ApplicationEventPublisher applicationEventPublisher
     ) {
         this.orderMapper = orderMapper;
         this.orderService = orderService;
         this.taskStatusService = taskStatusService;
+        this.taskService = taskService;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
@@ -39,8 +47,20 @@ public class OrderStatusService {
         if (!Objects.equals(order.getPosterId(), currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布者可以确认订单");
         }
+        Task task = taskService.requireTask(order.getTaskId());
         transition(order, OrderCodecs.ORDER_STATUS_PENDING, OrderCodecs.ORDER_STATUS_CONFIRMED, "订单已被其他人更新");
-        taskStatusService.markInProgress(order.getTaskId());
+        if (Objects.equals(task.getCategory(), TaskCodecs.TASK_CATEGORY_TEAM_UP)) {
+            if (!taskStatusService.incrementTeamCurrentMembers(order.getTaskId())) {
+                throw new BusinessException(ErrorCode.CONFLICT, "组队人数已满或需求已结束");
+            }
+            Task updatedTask = taskService.requireTask(order.getTaskId());
+            if (Objects.equals(updatedTask.getStatus(), TaskCodecs.TASK_STATUS_COMPLETED)) {
+                orderMapper.completeConfirmedOrdersByTask(order.getTaskId());
+                orderMapper.cancelPendingOrdersByTask(order.getTaskId());
+            }
+        } else {
+            taskStatusService.markInProgress(order.getTaskId());
+        }
         applicationEventPublisher.publishEvent(new OrderConfirmedEvent(
                 order.getId(), order.getTaskId(), order.getPosterId(), order.getHelperId()));
         return orderService.getDetail(orderId, currentUserId);
@@ -49,6 +69,13 @@ public class OrderStatusService {
     @Transactional
     public OrderDetailDTO complete(Long orderId, Long currentUserId) {
         Order order = orderService.requireAccessibleOrder(orderId, currentUserId);
+        if (!Objects.equals(order.getPosterId(), currentUserId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布者可以完成订单");
+        }
+        Task task = taskService.requireTask(order.getTaskId());
+        if (Objects.equals(task.getCategory(), TaskCodecs.TASK_CATEGORY_TEAM_UP)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "活动组队需求会在满员后自动完成");
+        }
         transition(order, OrderCodecs.ORDER_STATUS_CONFIRMED, OrderCodecs.ORDER_STATUS_COMPLETED, "订单已被其他人更新");
         taskStatusService.markCompleted(order.getTaskId());
         applicationEventPublisher.publishEvent(new OrderCompletedEvent(
@@ -59,21 +86,25 @@ public class OrderStatusService {
     @Transactional
     public OrderDetailDTO cancel(Long orderId, Long currentUserId) {
         Order order = orderService.requireAccessibleOrder(orderId, currentUserId);
+        if (!Objects.equals(order.getPosterId(), currentUserId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布者可以取消订单");
+        }
         if (order.getStatus() == null
                 || (order.getStatus() != OrderCodecs.ORDER_STATUS_PENDING
                 && order.getStatus() != OrderCodecs.ORDER_STATUS_CONFIRMED)) {
             throw new BusinessException(ErrorCode.CONFLICT, "当前订单状态不允许取消");
         }
-        int updated = orderMapper.updateStatusAndVersion(
-                order.getId(),
-                OrderCodecs.ORDER_STATUS_CANCELLED,
-                order.getStatus(),
-                order.getVersion()
-        );
-        if (updated == 0) {
-            throw new BusinessException(ErrorCode.CONFLICT, "订单已被其他人更新");
-        }
-        taskStatusService.reopen(order.getTaskId());
+        Task task = taskService.requireTask(order.getTaskId());
+        List<Order> activeOrders = orderMapper.selectActiveOrdersByTask(order.getTaskId());
+        orderMapper.cancelOrdersByTask(order.getTaskId());
+        taskStatusService.markCancelled(order.getTaskId());
+        activeOrders.forEach(activeOrder -> applicationEventPublisher.publishEvent(new OrderCancelledEvent(
+                activeOrder.getId(),
+                activeOrder.getTaskId(),
+                activeOrder.getPosterId(),
+                activeOrder.getHelperId(),
+                task.getTitle()
+        )));
         return orderService.getDetail(orderId, currentUserId);
     }
 

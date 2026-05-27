@@ -22,6 +22,8 @@ const tone = computed(() => {
       return 'blue'
     case 'CANCELLED':
       return 'red'
+    case 'WAITING_REVIEW':
+      return 'purple'
     default:
       return 'orange'
   }
@@ -58,5 +60,10 @@ const tone = computed(() => {
 .status-badge.red {
   background: #fff1f2;
   color: #dc2626;
+}
+
+.status-badge.purple {
+  background: #f3efff;
+  color: #7c3aed;
 }
 </style>

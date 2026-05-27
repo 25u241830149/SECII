@@ -1,5 +1,6 @@
 package com.campushub.message.service;
 
+import com.campushub.order.event.OrderCancelledEvent;
 import com.campushub.order.event.OrderCompletedEvent;
 import com.campushub.order.event.OrderConfirmedEvent;
 import com.campushub.order.event.OrderCreatedEvent;
@@ -55,6 +56,17 @@ public class NotificationService {
                 MessageCodecs.TYPE_REVIEW,
                 "订单已完成，请评价",
                 "订单 #" + event.orderId() + " 已完成，请为发布者留下评价。"
+        );
+    }
+
+    @EventListener
+    public void onOrderCancelled(OrderCancelledEvent event) {
+        messageService.notifyIfDifferent(
+                event.helperId(),
+                event.posterId(),
+                MessageCodecs.TYPE_ORDER,
+                "订单已取消",
+                "你参与的需求“" + event.taskTitle() + "”已由发布者取消。"
         );
     }
 

@@ -23,3 +23,7 @@ export function uploadAvatar(file: File) {
 export function uploadStudentCard(file: File, studentId: string) {
   return uploadFile('/upload/student-card', file, { studentId })
 }
+
+export function uploadTaskImage(file: File) {
+  return uploadFile('/upload/task-image', file)
+}

@@ -79,39 +79,40 @@
 
         <section class="sidebar-section filters">
           <h2>筛选条件</h2>
-          <div class="filter-row">
-            <b>时间</b>
-            <span class="pill active">最新发布</span>
-            <span class="pill">即将截止</span>
-          </div>
-          <div class="filter-row">
-            <b>地点</b>
-            <span class="pill active">附近</span>
-            <span class="pill">本学院</span>
-            <span class="pill">全校</span>
-          </div>
-          <div class="filter-row">
-            <b>报酬</b>
-            <span class="pill">有偿</span>
-            <span class="pill">无偿</span>
-            <span class="pill">交换互助</span>
+          <div
+            v-for="group in filterGroups"
+            :key="group.key"
+            class="filter-row"
+            :class="{ 'sort-filter-row': group.key === 'sort', 'status-filter-row': group.key === 'status' }"
+          >
+            <b>{{ group.label }}</b>
+            <button
+              v-for="option in group.options"
+              :key="option.value"
+              type="button"
+              class="pill"
+              :class="{ active: isTaskFilterActive(group.key, option.value) }"
+              @click="selectTaskFilter(group.key, option.value)"
+            >
+              {{ option.label }}
+            </button>
           </div>
         </section>
 
         <section class="sidebar-section stats">
           <div>
             <span class="stat-dot blue"><el-icon><TrendCharts /></el-icon></span>
-            <b>28</b>
+            <b>{{ feedStore.stats.todayCreated }}</b>
             <small>今日新增</small>
           </div>
           <div>
             <span class="stat-dot green"><el-icon><Clock /></el-icon></span>
-            <b>16</b>
+            <b>{{ feedStore.stats.inProgress }}</b>
             <small>进行中</small>
           </div>
           <div>
             <span class="stat-dot orange"><el-icon><CircleCheck /></el-icon></span>
-            <b>342</b>
+            <b>{{ feedStore.stats.completed }}</b>
             <small>已完成</small>
           </div>
         </section>
@@ -125,7 +126,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   ArrowDown,
@@ -147,17 +148,19 @@ import { useRoute, useRouter } from 'vue-router'
 
 import { getUnreadMessageCount } from '@/api/message'
 import CampusHubLogo from '@/components/CampusHubLogo.vue'
-import { useAppStore, useAuthStore, useUserStore } from '@/stores'
+import { useAppStore, useAuthStore, useFeedStore, useUserStore } from '@/stores'
 import { resolveAssetUrl } from '@/utils/asset'
-import type { TaskCategory } from '@/types'
+import type { LocationTypeFilter, RewardTypeFilter, SortType, TaskCategory, TaskStatusFilter } from '@/types'
 
 const appStore = useAppStore()
 const authStore = useAuthStore()
+const feedStore = useFeedStore()
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
 const unreadMessageCount = ref(0)
 const topKeyword = ref('')
+const messageUnreadUpdatedEvent = 'campushub:message-unread-updated'
 
 const isProfileArea = computed(() => route.path.startsWith('/profile'))
 const headerAvatar = computed(() => resolveAssetUrl(userStore.profile?.avatarUrl || authStore.user?.avatarUrl || ''))
@@ -173,12 +176,133 @@ const categories = [
 ]
 
 type CategoryFilter = TaskCategory | 'ALL'
+type TaskFilterKey = 'sort' | 'status' | 'rewardType' | 'locationType'
+type TaskFilterValue = SortType | TaskStatusFilter | RewardTypeFilter | LocationTypeFilter
+
+const validCategoryValues = new Set<CategoryFilter>(categories.map((item) => item.value))
+const validStatusFilters = new Set<TaskStatusFilter>(['ALL', 'OPEN', 'PENDING_CONFIRM', 'IN_PROGRESS'])
+const validRewardFilters = new Set<RewardTypeFilter>(['ALL', 'PAID', 'FREE'])
+const validLocationFilters = new Set<LocationTypeFilter>(['ALL', 'WITH_LOCATION', 'UNSPECIFIED'])
+
+const filterGroups: Array<{
+  key: TaskFilterKey
+  label: string
+  options: Array<{ label: string; value: TaskFilterValue }>
+}> = [
+  {
+    key: 'sort',
+    label: '排序',
+    options: [
+      { label: '最新发布', value: 'time' },
+      { label: '热门推荐', value: 'hot' },
+    ],
+  },
+  {
+    key: 'status',
+    label: '状态',
+    options: [
+      { label: '全部', value: 'ALL' },
+      { label: '可接单', value: 'OPEN' },
+      { label: '待确认', value: 'PENDING_CONFIRM' },
+      { label: '进行中', value: 'IN_PROGRESS' },
+    ],
+  },
+  {
+    key: 'rewardType',
+    label: '报酬',
+    options: [
+      { label: '全部', value: 'ALL' },
+      { label: '有偿', value: 'PAID' },
+      { label: '无偿', value: 'FREE' },
+    ],
+  },
+  {
+    key: 'locationType',
+    label: '地点',
+    options: [
+      { label: '全部', value: 'ALL' },
+      { label: '已填写', value: 'WITH_LOCATION' },
+      { label: '待确定', value: 'UNSPECIFIED' },
+    ],
+  },
+]
+
+const normalizeCategory = (value: unknown): CategoryFilter => {
+  return typeof value === 'string' && validCategoryValues.has(value as CategoryFilter)
+    ? (value as CategoryFilter)
+    : 'ALL'
+}
+
+const normalizeSort = (value: unknown): SortType => {
+  return value === 'hot' ? 'hot' : 'time'
+}
+
+const normalizeStatusFilter = (value: unknown): TaskStatusFilter => {
+  return typeof value === 'string' && validStatusFilters.has(value as TaskStatusFilter)
+    ? (value as TaskStatusFilter)
+    : 'ALL'
+}
+
+const normalizeRewardFilter = (value: unknown): RewardTypeFilter => {
+  return typeof value === 'string' && validRewardFilters.has(value as RewardTypeFilter)
+    ? (value as RewardTypeFilter)
+    : 'ALL'
+}
+
+const normalizeLocationFilter = (value: unknown): LocationTypeFilter => {
+  return typeof value === 'string' && validLocationFilters.has(value as LocationTypeFilter)
+    ? (value as LocationTypeFilter)
+    : 'ALL'
+}
+
+const activeTaskFilters = computed(() => ({
+  sort: normalizeSort(route.query.sort),
+  status: normalizeStatusFilter(route.query.status),
+  rewardType: normalizeRewardFilter(route.query.rewardType),
+  locationType: normalizeLocationFilter(route.query.locationType),
+}))
+
+const buildTaskQuery = (filters: {
+  category?: CategoryFilter
+  keyword?: string
+  sort?: SortType
+  status?: TaskStatusFilter
+  rewardType?: RewardTypeFilter
+  locationType?: LocationTypeFilter
+} = {}) => {
+  const category = filters.category ?? normalizeCategory(route.query.category)
+  const keyword = filters.keyword ?? (typeof route.query.keyword === 'string' ? route.query.keyword : '')
+  const sort = filters.sort ?? activeTaskFilters.value.sort
+  const status = filters.status ?? activeTaskFilters.value.status
+  const rewardType = filters.rewardType ?? activeTaskFilters.value.rewardType
+  const locationType = filters.locationType ?? activeTaskFilters.value.locationType
+
+  return {
+    ...(category === 'ALL' ? {} : { category }),
+    ...(keyword.trim() ? { keyword: keyword.trim() } : {}),
+    ...(sort === 'time' ? {} : { sort }),
+    ...(status === 'ALL' ? {} : { status }),
+    ...(rewardType === 'ALL' ? {} : { rewardType }),
+    ...(locationType === 'ALL' ? {} : { locationType }),
+  }
+}
+
+const isTaskFilterActive = (key: TaskFilterKey, value: TaskFilterValue) => {
+  return activeTaskFilters.value[key] === value
+}
+
+const selectTaskFilter = (key: TaskFilterKey, value: TaskFilterValue) => {
+  router.push({
+    name: 'task-list',
+    query: buildTaskQuery({ [key]: value }),
+  })
+}
 
 const selectTaskCategory = (category: CategoryFilter) => {
   appStore.setActiveTaskCategory(category)
   router.push({
     name: 'task-list',
-    query: category === 'ALL' ? {} : { category },
+    query: buildTaskQuery({ category }),
   })
 }
 
@@ -186,10 +310,10 @@ const handleTopSearch = () => {
   const keyword = topKeyword.value.trim()
   router.push({
     name: 'task-list',
-    query: {
-      ...(appStore.activeTaskCategory === 'ALL' ? {} : { category: appStore.activeTaskCategory }),
-      ...(keyword ? { keyword } : {}),
-    },
+    query: buildTaskQuery({
+      category: appStore.activeTaskCategory,
+      keyword,
+    }),
   })
 }
 
@@ -225,16 +349,31 @@ const refreshUnreadCount = async () => {
   }
 }
 
+const handleMessageUnreadUpdated = () => {
+  refreshUnreadCount()
+}
+
+const refreshTaskStats = () => {
+  feedStore.fetchStats()
+}
+
 watch(
   () => [authStore.isAuthenticated, route.fullPath],
   () => {
     refreshUnreadCount()
+    refreshTaskStats()
   },
 )
 
 onMounted(() => {
   topKeyword.value = typeof route.query.keyword === 'string' ? route.query.keyword : ''
+  window.addEventListener(messageUnreadUpdatedEvent, handleMessageUnreadUpdated)
   refreshUnreadCount()
+  refreshTaskStats()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener(messageUnreadUpdatedEvent, handleMessageUnreadUpdated)
 })
 </script>
 
@@ -382,10 +521,13 @@ onMounted(() => {
 }
 
 .auth-link {
+  display: inline-flex;
   height: 40px;
+  align-items: center;
+  justify-content: center;
   padding: 0 16px;
   border-radius: 8px;
-  line-height: 40px;
+  line-height: 1;
 }
 
 .auth-link.primary {
@@ -493,26 +635,45 @@ onMounted(() => {
 }
 
 .filter-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 42px repeat(3, minmax(0, 1fr));
   align-items: center;
   gap: 8px;
   margin: 13px 0;
 }
 
+.sort-filter-row {
+  grid-template-columns: 42px repeat(2, minmax(76px, 1fr));
+}
+
+.status-filter-row {
+  grid-template-columns: 42px repeat(4, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.status-filter-row .pill {
+  padding-right: 4px;
+  padding-left: 4px;
+}
+
 .filter-row b {
-  width: 42px;
   color: #374151;
   font-weight: 600;
 }
 
 .pill {
-  padding: 7px 11px;
   border: 1px solid #e1e8f2;
+  min-width: 0;
+  padding: 7px 6px;
   border-radius: 8px;
   background: #fff;
   color: #5b6472;
+  cursor: pointer;
+  font: inherit;
   font-size: 13px;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .pill.active {

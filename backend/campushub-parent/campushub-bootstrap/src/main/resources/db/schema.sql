@@ -61,19 +61,52 @@ CREATE TABLE IF NOT EXISTS t_task (
     location VARCHAR(128),
     location_point GEOGRAPHY(Point, 4326),
     reward NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    deadline_time TIMESTAMPTZ,
+    item_image_url VARCHAR(512),
+    original_price NUMERIC(10, 2),
+    team_total_members INTEGER,
+    team_current_members INTEGER,
+    activity_time TIMESTAMPTZ,
+    activity_note TEXT,
     status SMALLINT NOT NULL DEFAULT 0,
     create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT ck_task_category CHECK (category IN (0, 1, 2, 3, 4)),
     CONSTRAINT ck_task_reward CHECK (reward >= 0),
+    CONSTRAINT ck_task_original_price CHECK (original_price IS NULL OR original_price >= 0),
+    CONSTRAINT ck_task_team_members CHECK (
+        (team_total_members IS NULL AND team_current_members IS NULL)
+        OR (
+            team_total_members IS NOT NULL
+            AND team_current_members IS NOT NULL
+            AND team_total_members > 0
+            AND team_current_members >= 0
+            AND team_current_members <= team_total_members
+        )
+    ),
     CONSTRAINT ck_task_status CHECK (status IN (0, 1, 2, 3, 4))
 );
 
+ALTER TABLE t_task ADD COLUMN IF NOT EXISTS deadline_time TIMESTAMPTZ;
+ALTER TABLE t_task ADD COLUMN IF NOT EXISTS item_image_url VARCHAR(512);
+ALTER TABLE t_task ADD COLUMN IF NOT EXISTS original_price NUMERIC(10, 2);
+ALTER TABLE t_task ADD COLUMN IF NOT EXISTS team_total_members INTEGER;
+ALTER TABLE t_task ADD COLUMN IF NOT EXISTS team_current_members INTEGER;
+ALTER TABLE t_task ADD COLUMN IF NOT EXISTS activity_time TIMESTAMPTZ;
+ALTER TABLE t_task ADD COLUMN IF NOT EXISTS activity_note TEXT;
+
 COMMENT ON TABLE t_task IS 'Campus help task';
-COMMENT ON COLUMN t_task.category IS '0=delivery, 1=printing, 2=shopping, 3=study, 4=other';
+COMMENT ON COLUMN t_task.category IS '0=express, 1=study, 2=second_hand, 3=team_up, 4=other';
 COMMENT ON COLUMN t_task.location_point IS 'Optional PostGIS point for distance queries';
-COMMENT ON COLUMN t_task.status IS '0=open, 1=locked, 2=in_progress, 3=completed, 4=canceled';
+COMMENT ON COLUMN t_task.status IS '0=open, 1=pending_confirm, 2=in_progress, 3=completed, 4=canceled';
+COMMENT ON COLUMN t_task.deadline_time IS 'Optional deadline for ordinary tasks';
+COMMENT ON COLUMN t_task.item_image_url IS 'Second-hand item image URL';
+COMMENT ON COLUMN t_task.original_price IS 'Second-hand item original price';
+COMMENT ON COLUMN t_task.team_total_members IS 'Team-up required total member count';
+COMMENT ON COLUMN t_task.team_current_members IS 'Team-up current member count';
+COMMENT ON COLUMN t_task.activity_time IS 'Team-up activity time';
+COMMENT ON COLUMN t_task.activity_note IS 'Team-up activity notes or requirements';
 
 CREATE TABLE IF NOT EXISTS t_task_favorite (
     id BIGSERIAL PRIMARY KEY,
@@ -95,7 +128,6 @@ CREATE TABLE IF NOT EXISTS t_order (
     create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
-    CONSTRAINT uk_order_task UNIQUE (task_id),
     CONSTRAINT ck_order_status CHECK (status IN (0, 1, 2, 3, 4)),
     CONSTRAINT ck_order_version CHECK (version >= 0),
     CONSTRAINT ck_order_different_users CHECK (poster_id <> helper_id)
@@ -104,6 +136,8 @@ CREATE TABLE IF NOT EXISTS t_order (
 COMMENT ON TABLE t_order IS 'Task order lifecycle';
 COMMENT ON COLUMN t_order.status IS '0=grabbed, 1=confirmed, 2=completed, 3=canceled, 4=disputed';
 COMMENT ON COLUMN t_order.version IS 'Optimistic lock version used with Redisson grab-order lock';
+
+ALTER TABLE t_order DROP CONSTRAINT IF EXISTS uk_order_task;
 
 CREATE TABLE IF NOT EXISTS t_review (
     id BIGSERIAL PRIMARY KEY,
@@ -257,6 +291,7 @@ CREATE INDEX IF NOT EXISTS idx_task_favorite_user_time ON t_task_favorite (user_
 CREATE INDEX IF NOT EXISTS idx_order_poster_status ON t_order (poster_id, status);
 CREATE INDEX IF NOT EXISTS idx_order_helper_status ON t_order (helper_id, status);
 CREATE INDEX IF NOT EXISTS idx_order_status_time ON t_order (status, create_time DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS uk_order_task_helper ON t_order (task_id, helper_id) WHERE is_deleted = false;
 
 CREATE INDEX IF NOT EXISTS idx_review_order ON t_review (order_id);
 CREATE INDEX IF NOT EXISTS idx_review_target_time ON t_review (target_user_id, create_time DESC);

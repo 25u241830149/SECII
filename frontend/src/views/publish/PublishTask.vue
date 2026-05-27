@@ -25,7 +25,7 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item label="报酬">
+          <el-form-item :label="rewardLabel">
             <el-input-number v-model="form.reward" :min="0" :step="1" :precision="2" />
           </el-form-item>
 
@@ -37,9 +37,61 @@
             <el-input v-model="form.description" type="textarea" :rows="6" maxlength="800" show-word-limit />
           </el-form-item>
 
-          <el-form-item class="span-2" label="地点">
+          <el-form-item v-if="form.category !== 'TEAM_UP'" class="span-2" :label="form.category === 'SECOND_HAND' ? '交易地点' : '地点'">
             <el-input v-model="form.location" placeholder="例如：南门菜鸟驿站 / 理学楼 307" />
           </el-form-item>
+
+          <el-form-item v-if="form.category !== 'TEAM_UP'" label="截止时间">
+            <el-date-picker
+              v-model="form.deadlineTime"
+              type="datetime"
+              placeholder="选择截止时间"
+              style="width: 100%"
+            />
+          </el-form-item>
+
+          <template v-if="form.category === 'SECOND_HAND'">
+            <el-form-item label="物品原价">
+              <el-input-number v-model="form.originalPrice" :min="0" :step="1" :precision="2" />
+            </el-form-item>
+            <el-form-item class="span-2" label="物品图片">
+              <div class="image-upload-row">
+                <el-upload
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  accept="image/jpeg,image/png,image/webp"
+                  @change="handleTaskImageChange"
+                >
+                  <el-button :loading="uploadingImage">上传图片</el-button>
+                </el-upload>
+                <img v-if="form.itemImageUrl" :src="resolveAssetUrl(form.itemImageUrl)" alt="物品图片预览" />
+                <span v-else>支持 JPG、PNG、WebP，上传后会在详情页展示。</span>
+              </div>
+            </el-form-item>
+          </template>
+
+          <template v-if="form.category === 'TEAM_UP'">
+            <el-form-item label="团队总人数">
+              <el-input-number v-model="form.teamTotalMembers" :min="1" :step="1" />
+            </el-form-item>
+            <el-form-item label="当前已有成员人数">
+              <el-input-number v-model="form.teamCurrentMembers" :min="0" :step="1" />
+            </el-form-item>
+            <el-form-item label="活动时间">
+              <el-date-picker
+                v-model="form.activityTime"
+                type="datetime"
+                placeholder="选择活动时间"
+                style="width: 100%"
+              />
+            </el-form-item>
+            <el-form-item label="活动地点">
+              <el-input v-model="form.location" placeholder="例如：东区体育馆 / 操场" />
+            </el-form-item>
+            <el-form-item class="span-2" label="活动说明 / 要求">
+              <el-input v-model="form.activityNote" type="textarea" :rows="4" maxlength="800" show-word-limit />
+            </el-form-item>
+          </template>
         </div>
 
         <div class="actions">
@@ -52,15 +104,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import type { UploadFile, UploadProps } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 import { createTask } from '@/api/task'
+import { uploadTaskImage } from '@/api/upload'
+import { resolveAssetUrl } from '@/utils/asset'
 import type { TaskCategory, TaskMutationPayload } from '@/types'
 
 const router = useRouter()
 const submitting = ref(false)
+const uploadingImage = ref(false)
 
 const form = reactive<TaskMutationPayload>({
   title: '',
@@ -68,6 +124,13 @@ const form = reactive<TaskMutationPayload>({
   category: 'EXPRESS',
   reward: 0,
   location: '',
+  deadlineTime: null,
+  itemImageUrl: null,
+  originalPrice: null,
+  teamTotalMembers: 2,
+  teamCurrentMembers: 1,
+  activityTime: null,
+  activityNote: '',
 })
 
 const templateTipMap: Record<TaskCategory, { title: string; tip: string }> = {
@@ -95,11 +158,65 @@ const templateTipMap: Record<TaskCategory, { title: string; tip: string }> = {
 
 const templateTitle = computed(() => templateTipMap[form.category].title)
 const templateTip = computed(() => templateTipMap[form.category].tip)
+const rewardLabel = computed(() => (form.category === 'SECOND_HAND' ? '现价' : '报酬'))
+
+watch(
+  () => form.category,
+  (category) => {
+    if (category !== 'SECOND_HAND') {
+      form.itemImageUrl = null
+      form.originalPrice = null
+    }
+    if (category !== 'TEAM_UP') {
+      form.teamTotalMembers = null
+      form.teamCurrentMembers = null
+      form.activityTime = null
+      form.activityNote = null
+    } else {
+      form.deadlineTime = null
+      form.teamTotalMembers = form.teamTotalMembers ?? 2
+      form.teamCurrentMembers = form.teamCurrentMembers ?? 1
+    }
+  },
+)
+
+const handleTaskImageChange: UploadProps['onChange'] = async (uploadFile: UploadFile) => {
+  const rawFile = uploadFile.raw
+  if (!rawFile) return
+  if (!rawFile.type.startsWith('image/')) {
+    ElMessage.warning('请选择图片文件')
+    return
+  }
+
+  uploadingImage.value = true
+  try {
+    const result = await uploadTaskImage(rawFile)
+    form.itemImageUrl = result.fileUrl
+    ElMessage.success('图片已上传')
+  } finally {
+    uploadingImage.value = false
+  }
+}
+
+const buildPayload = (): TaskMutationPayload => ({
+  title: form.title,
+  description: form.description,
+  category: form.category,
+  reward: form.reward,
+  location: form.location,
+  deadlineTime: form.deadlineTime || null,
+  itemImageUrl: form.category === 'SECOND_HAND' ? form.itemImageUrl || null : null,
+  originalPrice: form.category === 'SECOND_HAND' ? form.originalPrice ?? null : null,
+  teamTotalMembers: form.category === 'TEAM_UP' ? form.teamTotalMembers ?? null : null,
+  teamCurrentMembers: form.category === 'TEAM_UP' ? form.teamCurrentMembers ?? null : null,
+  activityTime: form.category === 'TEAM_UP' ? form.activityTime || null : null,
+  activityNote: form.category === 'TEAM_UP' ? form.activityNote || null : null,
+})
 
 const handleSubmit = async () => {
   submitting.value = true
   try {
-    const detail = await createTask(form)
+    const detail = await createTask(buildPayload())
     ElMessage.success('任务已发布')
     router.replace(`/tasks/${detail.taskId}`)
   } finally {
@@ -111,9 +228,15 @@ const handleSubmit = async () => {
 <style scoped>
 .publish-page {
   display: grid;
+  height: calc(100vh - 122px);
+  min-height: 0;
 }
 
 .publish-card {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
   padding: 28px;
   border: 1px solid #e7edf7;
   border-radius: 8px;
@@ -121,7 +244,29 @@ const handleSubmit = async () => {
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
 }
 
+.publish-card :deep(.el-form) {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+
+.publish-card :deep(.el-form::-webkit-scrollbar) {
+  width: 8px;
+}
+
+.publish-card :deep(.el-form::-webkit-scrollbar-thumb) {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.publish-card :deep(.el-form::-webkit-scrollbar-track) {
+  background: transparent;
+}
+
 .header {
+  flex: 0 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;
   gap: 18px;
@@ -167,14 +312,49 @@ const handleSubmit = async () => {
   grid-column: 1 / -1;
 }
 
+.image-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.image-upload-row img {
+  width: 96px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.image-upload-row span {
+  color: #64748b;
+  font-size: 13px;
+}
+
 .actions {
+  position: sticky;
+  bottom: 0;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   margin-top: 8px;
+  padding-top: 12px;
+  background: #fff;
 }
 
 @media (max-width: 900px) {
+  .publish-page {
+    height: auto;
+  }
+
+  .publish-card {
+    overflow: visible;
+  }
+
+  .publish-card :deep(.el-form) {
+    overflow: visible;
+    padding-right: 0;
+  }
+
   .header,
   .form-grid {
     grid-template-columns: 1fr;

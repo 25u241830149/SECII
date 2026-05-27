@@ -32,6 +32,27 @@ public class Task {
     @TableField("reward")
     private BigDecimal reward;
 
+    @TableField("deadline_time")
+    private OffsetDateTime deadlineTime;
+
+    @TableField("item_image_url")
+    private String itemImageUrl;
+
+    @TableField("original_price")
+    private BigDecimal originalPrice;
+
+    @TableField("team_total_members")
+    private Integer teamTotalMembers;
+
+    @TableField("team_current_members")
+    private Integer teamCurrentMembers;
+
+    @TableField("activity_time")
+    private OffsetDateTime activityTime;
+
+    @TableField("activity_note")
+    private String activityNote;
+
     @TableField("status")
     private Integer status;
 
@@ -105,6 +126,62 @@ public class Task {
 
     public void setReward(BigDecimal reward) {
         this.reward = reward;
+    }
+
+    public OffsetDateTime getDeadlineTime() {
+        return deadlineTime;
+    }
+
+    public void setDeadlineTime(OffsetDateTime deadlineTime) {
+        this.deadlineTime = deadlineTime;
+    }
+
+    public String getItemImageUrl() {
+        return itemImageUrl;
+    }
+
+    public void setItemImageUrl(String itemImageUrl) {
+        this.itemImageUrl = itemImageUrl;
+    }
+
+    public BigDecimal getOriginalPrice() {
+        return originalPrice;
+    }
+
+    public void setOriginalPrice(BigDecimal originalPrice) {
+        this.originalPrice = originalPrice;
+    }
+
+    public Integer getTeamTotalMembers() {
+        return teamTotalMembers;
+    }
+
+    public void setTeamTotalMembers(Integer teamTotalMembers) {
+        this.teamTotalMembers = teamTotalMembers;
+    }
+
+    public Integer getTeamCurrentMembers() {
+        return teamCurrentMembers;
+    }
+
+    public void setTeamCurrentMembers(Integer teamCurrentMembers) {
+        this.teamCurrentMembers = teamCurrentMembers;
+    }
+
+    public OffsetDateTime getActivityTime() {
+        return activityTime;
+    }
+
+    public void setActivityTime(OffsetDateTime activityTime) {
+        this.activityTime = activityTime;
+    }
+
+    public String getActivityNote() {
+        return activityNote;
+    }
+
+    public void setActivityNote(String activityNote) {
+        this.activityNote = activityNote;
     }
 
     public Integer getStatus() {

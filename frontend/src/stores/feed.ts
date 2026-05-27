@@ -1,16 +1,28 @@
 import { defineStore } from 'pinia'
 
-import { getTasks } from '@/api/task'
-import type { SortType, TaskCategory, TaskListDTO } from '@/types'
+import { getTaskStats, getTasks } from '@/api/task'
+import type {
+  LocationTypeFilter,
+  RewardTypeFilter,
+  SortType,
+  TaskCategory,
+  TaskListDTO,
+  TaskStatsDTO,
+  TaskStatusFilter,
+} from '@/types'
 
 interface FeedState {
   category: TaskCategory | 'ALL'
   keyword: string
   sort: SortType
+  status: TaskStatusFilter
+  rewardType: RewardTypeFilter
+  locationType: LocationTypeFilter
   page: number
   size: number
   total: number
   tasks: TaskListDTO[]
+  stats: TaskStatsDTO
   loading: boolean
 }
 
@@ -19,10 +31,18 @@ export const useFeedStore = defineStore('feed', {
     category: 'ALL',
     keyword: '',
     sort: 'time',
+    status: 'ALL',
+    rewardType: 'ALL',
+    locationType: 'ALL',
     page: 1,
     size: 10,
     total: 0,
     tasks: [],
+    stats: {
+      todayCreated: 0,
+      inProgress: 0,
+      completed: 0,
+    },
     loading: false,
   }),
 
@@ -39,6 +59,9 @@ export const useFeedStore = defineStore('feed', {
           category: this.category === 'ALL' ? undefined : this.category,
           keyword: this.keyword || undefined,
           sort: this.sort,
+          status: this.status === 'ALL' ? undefined : this.status,
+          rewardType: this.rewardType === 'ALL' ? undefined : this.rewardType,
+          locationType: this.locationType === 'ALL' ? undefined : this.locationType,
           page: this.page,
           size: this.size,
           excludeCompleted: true,
@@ -47,6 +70,18 @@ export const useFeedStore = defineStore('feed', {
         this.total = result.total
       } finally {
         this.loading = false
+      }
+    },
+
+    async fetchStats() {
+      try {
+        this.stats = await getTaskStats()
+      } catch {
+        this.stats = {
+          todayCreated: 0,
+          inProgress: 0,
+          completed: 0,
+        }
       }
     },
 
@@ -62,6 +97,21 @@ export const useFeedStore = defineStore('feed', {
 
     setSort(sort: SortType) {
       this.sort = sort
+      this.page = 1
+    },
+
+    setStatus(status: TaskStatusFilter) {
+      this.status = status
+      this.page = 1
+    },
+
+    setRewardType(rewardType: RewardTypeFilter) {
+      this.rewardType = rewardType
+      this.page = 1
+    },
+
+    setLocationType(locationType: LocationTypeFilter) {
+      this.locationType = locationType
       this.page = 1
     },
 

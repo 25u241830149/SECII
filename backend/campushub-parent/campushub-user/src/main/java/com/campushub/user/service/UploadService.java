@@ -59,6 +59,13 @@ public class UploadService {
         return saveImage(file, "student-cards", directoryKey, studentCardMaxSize);
     }
 
+    public UploadResultDTO uploadTaskImage(Long userId, MultipartFile file) {
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, ErrorCode.UNAUTHORIZED_MESSAGE);
+        }
+        return saveImage(file, "task-images", String.valueOf(userId), avatarMaxSize);
+    }
+
     private UploadResultDTO saveImage(MultipartFile file, String category, String ownerKey, long maxSize) {
         validateImage(file, maxSize);
 

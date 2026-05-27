@@ -33,6 +33,43 @@
         END
     </sql>
 
+    <sql id="OrderStatusFilter">
+        <choose>
+            <when test="status == 'PENDING'">
+              AND o.status = 0
+              AND t.category != 3
+            </when>
+            <when test="status == 'CONFIRMED'">
+              AND o.status = 1
+            </when>
+            <when test="status == 'COMPLETED'">
+              AND o.status = 2
+            </when>
+            <when test="status == 'CANCELLED'">
+              AND o.status = 3
+            </when>
+            <when test="status == 'WAITING_REVIEW'">
+              AND o.status = 2
+              AND t.category != 3
+              AND NOT EXISTS (
+                  SELECT 1 FROM t_review r
+                  WHERE r.order_id = o.id
+                    AND r.reviewer_id = #{userId}
+              )
+            </when>
+        </choose>
+    </sql>
+
+    <sql id="TaskStatusCase">
+        CASE
+            WHEN t.status = 1 THEN 'PENDING_CONFIRM'
+            WHEN t.status = 2 THEN 'IN_PROGRESS'
+            WHEN t.status = 3 THEN 'COMPLETED'
+            WHEN t.status = 4 THEN 'CANCELLED'
+            ELSE 'OPEN'
+        END
+    </sql>
+
     <insert id="insertOrder" parameterType="com.campushub.order.entity.Order" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO t_order (
             task_id,
@@ -57,6 +94,14 @@
         LIMIT 1
     </select>
 
+    <select id="selectActiveOrdersByTask" resultMap="OrderResultMap">
+        SELECT id, task_id, poster_id, helper_id, status, version, create_time, update_time, is_deleted
+        FROM t_order
+        WHERE task_id = #{taskId}
+          AND is_deleted = false
+          AND status IN (0, 1)
+    </select>
+
     <select id="selectOrderDetail" resultType="com.campushub.order.dto.OrderDetailDTO">
         SELECT
             o.id AS orderId,
@@ -64,9 +109,17 @@
             t.title AS taskTitle,
             t.description AS taskDescription,
             <include refid="TaskCategoryCase"/> AS taskCategory,
+            <include refid="TaskStatusCase"/> AS taskStatus,
             t.location AS taskLocation,
             t.reward,
             <include refid="OrderStatusCase"/> AS status,
+            EXISTS (
+                SELECT 1 FROM t_review r
+                WHERE r.order_id = o.id
+                  AND r.reviewer_id = #{viewerId}
+            ) AS currentUserReviewed,
+            t.team_total_members AS teamTotalMembers,
+            t.team_current_members AS teamCurrentMembers,
             poster.id AS posterId,
             poster.nickname AS posterName,
             poster.avatar_url AS posterAvatarUrl,
@@ -92,9 +145,17 @@
             t.id AS taskId,
             t.title AS taskTitle,
             <include refid="TaskCategoryCase"/> AS taskCategory,
+            <include refid="TaskStatusCase"/> AS taskStatus,
             t.location AS taskLocation,
             t.reward,
             <include refid="OrderStatusCase"/> AS status,
+            EXISTS (
+                SELECT 1 FROM t_review r
+                WHERE r.order_id = o.id
+                  AND r.reviewer_id = #{userId}
+            ) AS currentUserReviewed,
+            t.team_total_members AS teamTotalMembers,
+            t.team_current_members AS teamCurrentMembers,
             poster.id AS posterId,
             poster.nickname AS posterName,
             poster.avatar_url AS posterAvatarUrl,
@@ -119,9 +180,7 @@
               AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
             </otherwise>
           </choose>
-          <if test="status != null">
-            AND o.status = #{status}
-          </if>
+          <include refid="OrderStatusFilter"/>
         ORDER BY o.create_time DESC
         OFFSET #{offset}
         LIMIT #{size}
@@ -130,6 +189,7 @@
     <select id="countOrderList" resultType="long">
         SELECT COUNT(1)
         FROM t_order o
+        JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
         WHERE o.is_deleted = false
           <choose>
             <when test="role == 'poster'">
@@ -142,9 +202,47 @@
               AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
             </otherwise>
           </choose>
-          <if test="status != null">
-            AND o.status = #{status}
-          </if>
+          <include refid="OrderStatusFilter"/>
+    </select>
+
+    <select id="selectOrderStats" resultType="com.campushub.order.dto.OrderStatsDTO">
+        SELECT
+            (SELECT COUNT(1)
+             FROM t_task t
+             WHERE t.publisher_id = #{userId}
+               AND t.status = 0
+               AND t.is_deleted = false) AS waitingAcceptance,
+            (SELECT COUNT(1)
+             FROM t_order o
+             JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+             WHERE o.is_deleted = false
+               AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
+               AND o.status = 0
+               AND t.category != 3) AS pending,
+            (SELECT COUNT(1)
+             FROM t_order o
+             JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+             WHERE o.is_deleted = false
+               AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
+               AND o.status = 1
+               AND t.status != 4) AS inProgress,
+            (SELECT COUNT(1)
+             FROM t_order o
+             JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+             WHERE o.is_deleted = false
+               AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
+               AND o.status = 2
+               AND t.category != 3
+               AND NOT EXISTS (
+                   SELECT 1 FROM t_review r
+                   WHERE r.order_id = o.id
+                     AND r.reviewer_id = #{userId}
+               )) AS waitingReview,
+            (SELECT COUNT(1)
+             FROM t_order o
+             WHERE o.is_deleted = false
+               AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
+               AND o.status = 2) AS completed
     </select>
 
     <update id="updateStatusAndVersion">
@@ -156,6 +254,36 @@
           AND is_deleted = false
           AND status = #{currentStatus}
           AND version = #{expectedVersion}
+    </update>
+
+    <update id="cancelOrdersByTask">
+        UPDATE t_order
+        SET status = 3,
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE task_id = #{taskId}
+          AND is_deleted = false
+          AND status IN (0, 1)
+    </update>
+
+    <update id="completeConfirmedOrdersByTask">
+        UPDATE t_order
+        SET status = 2,
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE task_id = #{taskId}
+          AND is_deleted = false
+          AND status = 1
+    </update>
+
+    <update id="cancelPendingOrdersByTask">
+        UPDATE t_order
+        SET status = 3,
+            version = version + 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE task_id = #{taskId}
+          AND is_deleted = false
+          AND status = 0
     </update>
 
     <select id="countCompletedByHelper" resultType="long">

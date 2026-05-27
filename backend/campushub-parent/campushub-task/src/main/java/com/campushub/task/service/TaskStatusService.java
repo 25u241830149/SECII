@@ -32,8 +32,12 @@ public class TaskStatusService {
         taskMapper.forceUpdateTaskStatus(taskId, TaskCodecs.TASK_STATUS_COMPLETED);
     }
 
+    public boolean incrementTeamCurrentMembers(Long taskId) {
+        return taskMapper.incrementTeamCurrentMembers(taskId) > 0;
+    }
+
     public void markCancelled(Long taskId) {
-        taskMapper.forceUpdateTaskStatus(taskId, TaskCodecs.TASK_STATUS_OFFLINE);
+        taskMapper.forceUpdateTaskStatus(taskId, TaskCodecs.TASK_STATUS_CANCELLED);
     }
 
     public void offline(Long taskId) {

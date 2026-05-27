@@ -6,6 +6,7 @@ import com.campushub.common.response.PageResponse;
 import com.campushub.common.utils.ValidateUtils;
 import com.campushub.task.dto.TaskDetailDTO;
 import com.campushub.task.dto.TaskListDTO;
+import com.campushub.task.dto.TaskStatsDTO;
 import com.campushub.task.mapper.TaskMapper;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,9 @@ public class TaskQueryService {
             Integer size,
             Long publisherId,
             Long viewerId,
+            String status,
+            String rewardType,
+            String locationType,
             Boolean excludeCompleted
     ) {
         int normalizedPage = ValidateUtils.normalizePage(page);
@@ -34,6 +38,9 @@ public class TaskQueryService {
         Integer categoryCode = category == null || category.isBlank() ? null : TaskCodecs.categoryCode(category);
         String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
         String normalizedSort = TaskCodecs.sortKey(sort);
+        String normalizedStatus = TaskCodecs.statusKey(status);
+        String normalizedRewardType = TaskCodecs.rewardTypeKey(rewardType);
+        String normalizedLocationType = TaskCodecs.locationTypeKey(locationType);
         int offset = (normalizedPage - 1) * normalizedSize;
 
         List<TaskListDTO> records = taskMapper.selectTaskList(
@@ -42,6 +49,9 @@ public class TaskQueryService {
                 publisherId,
                 viewerId,
                 normalizedSort,
+                normalizedStatus,
+                normalizedRewardType,
+                normalizedLocationType,
                 Boolean.TRUE.equals(excludeCompleted),
                 offset,
                 normalizedSize
@@ -50,9 +60,16 @@ public class TaskQueryService {
                 categoryCode,
                 normalizedKeyword,
                 publisherId,
+                normalizedStatus,
+                normalizedRewardType,
+                normalizedLocationType,
                 Boolean.TRUE.equals(excludeCompleted)
         );
         return PageResponse.of(records, total, normalizedPage, normalizedSize);
+    }
+
+    public TaskStatsDTO stats() {
+        return taskMapper.selectTaskStats();
     }
 
     public TaskDetailDTO getDetail(Long taskId, Long viewerId) {

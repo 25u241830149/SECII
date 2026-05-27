@@ -12,6 +12,9 @@ import com.campushub.review.dto.ReviewDTO;
 import com.campushub.review.entity.Review;
 import com.campushub.review.event.ReviewCreatedEvent;
 import com.campushub.review.mapper.ReviewMapper;
+import com.campushub.task.entity.Task;
+import com.campushub.task.service.TaskCodecs;
+import com.campushub.task.service.TaskService;
 import com.campushub.user.entity.User;
 import com.campushub.user.mapper.UserMapper;
 import java.math.BigDecimal;
@@ -30,6 +33,7 @@ public class ReviewService {
 
     private final ReviewMapper reviewMapper;
     private final OrderService orderService;
+    private final TaskService taskService;
     private final UserMapper userMapper;
     private final CreditCalculator creditCalculator;
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -37,12 +41,14 @@ public class ReviewService {
     public ReviewService(
             ReviewMapper reviewMapper,
             OrderService orderService,
+            TaskService taskService,
             UserMapper userMapper,
             CreditCalculator creditCalculator,
             ApplicationEventPublisher applicationEventPublisher
     ) {
         this.reviewMapper = reviewMapper;
         this.orderService = orderService;
+        this.taskService = taskService;
         this.userMapper = userMapper;
         this.creditCalculator = creditCalculator;
         this.applicationEventPublisher = applicationEventPublisher;
@@ -62,6 +68,10 @@ public class ReviewService {
         Order order = orderService.requireAccessibleOrder(request.orderId(), reviewerId);
         if (!Objects.equals(order.getStatus(), ORDER_STATUS_COMPLETED)) {
             throw new BusinessException(ErrorCode.CONFLICT, "订单完成后才能评价");
+        }
+        Task task = taskService.requireTask(order.getTaskId());
+        if (Objects.equals(task.getCategory(), TaskCodecs.TASK_CATEGORY_TEAM_UP)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "活动组队无需评价");
         }
         Long expectedTarget = expectedTarget(order, reviewerId);
         if (!Objects.equals(expectedTarget, request.targetUserId())) {

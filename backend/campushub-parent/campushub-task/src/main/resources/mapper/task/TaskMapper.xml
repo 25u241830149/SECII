@@ -10,6 +10,13 @@
         <result property="category" column="category"/>
         <result property="location" column="location"/>
         <result property="reward" column="reward"/>
+        <result property="deadlineTime" column="deadline_time"/>
+        <result property="itemImageUrl" column="item_image_url"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="teamTotalMembers" column="team_total_members"/>
+        <result property="teamCurrentMembers" column="team_current_members"/>
+        <result property="activityTime" column="activity_time"/>
+        <result property="activityNote" column="activity_note"/>
         <result property="status" column="status"/>
         <result property="createTime" column="create_time"/>
         <result property="updateTime" column="update_time"/>
@@ -26,6 +33,13 @@
         t.category,
         t.location,
         t.reward,
+        t.deadline_time,
+        t.item_image_url,
+        t.original_price,
+        t.team_total_members,
+        t.team_current_members,
+        t.activity_time,
+        t.activity_note,
         t.status,
         t.create_time,
         t.update_time,
@@ -46,9 +60,10 @@
 
     <sql id="TaskStatusCase">
         CASE
-            WHEN t.status IN (1, 2) THEN 'IN_PROGRESS'
+            WHEN t.status = 1 THEN 'PENDING_CONFIRM'
+            WHEN t.status = 2 THEN 'IN_PROGRESS'
             WHEN t.status = 3 THEN 'COMPLETED'
-            WHEN t.status = 4 THEN 'OFFLINE'
+            WHEN t.status = 4 THEN 'CANCELLED'
             ELSE 'OPEN'
         END
     </sql>
@@ -62,6 +77,13 @@
             location,
             location_point,
             reward,
+            deadline_time,
+            item_image_url,
+            original_price,
+            team_total_members,
+            team_current_members,
+            activity_time,
+            activity_note,
             status
         ) VALUES (
             #{publisherId},
@@ -78,6 +100,13 @@
                 </otherwise>
             </choose>,
             #{reward},
+            #{deadlineTime},
+            #{itemImageUrl},
+            #{originalPrice},
+            #{teamTotalMembers},
+            #{teamCurrentMembers},
+            #{activityTime},
+            #{activityNote},
             #{status}
         )
     </insert>
@@ -97,6 +126,13 @@
                 </otherwise>
             </choose>,
             reward = #{reward},
+            deadline_time = #{deadlineTime},
+            item_image_url = #{itemImageUrl},
+            original_price = #{originalPrice},
+            team_total_members = #{teamTotalMembers},
+            team_current_members = #{teamCurrentMembers},
+            activity_time = #{activityTime},
+            activity_note = #{activityNote},
             status = #{status},
             is_deleted = COALESCE(#{isDeleted}, is_deleted),
             update_time = CURRENT_TIMESTAMP
@@ -134,6 +170,13 @@
             t.location,
             CASE WHEN t.location_point IS NOT NULL THEN ST_X(t.location_point::geometry) END AS longitude,
             CASE WHEN t.location_point IS NOT NULL THEN ST_Y(t.location_point::geometry) END AS latitude,
+            t.deadline_time AS deadlineTime,
+            t.item_image_url AS itemImageUrl,
+            t.original_price AS originalPrice,
+            t.team_total_members AS teamTotalMembers,
+            t.team_current_members AS teamCurrentMembers,
+            t.activity_time AS activityTime,
+            t.activity_note AS activityNote,
             u.id AS publisherId,
             u.nickname AS publisherName,
             u.avatar_url AS publisherAvatarUrl,
@@ -167,6 +210,13 @@
             t.location,
             CASE WHEN t.location_point IS NOT NULL THEN ST_X(t.location_point::geometry) END AS longitude,
             CASE WHEN t.location_point IS NOT NULL THEN ST_Y(t.location_point::geometry) END AS latitude,
+            t.deadline_time AS deadlineTime,
+            t.item_image_url AS itemImageUrl,
+            t.original_price AS originalPrice,
+            t.team_total_members AS teamTotalMembers,
+            t.team_current_members AS teamCurrentMembers,
+            t.activity_time AS activityTime,
+            t.activity_note AS activityNote,
             u.id AS publisherId,
             u.nickname AS publisherName,
             u.avatar_url AS publisherAvatarUrl,
@@ -190,8 +240,41 @@
           <if test="publisherId != null">
             AND t.publisher_id = #{publisherId}
           </if>
+          <choose>
+            <when test="status == 'OPEN'">
+              AND t.status = 0
+            </when>
+            <when test="status == 'PENDING_CONFIRM'">
+              AND t.status = 1
+            </when>
+            <when test="status == 'IN_PROGRESS'">
+              AND t.status = 2
+            </when>
+            <when test="status == 'COMPLETED'">
+              AND t.status = 3
+            </when>
+            <when test="status == 'OFFLINE' or status == 'CANCELLED'">
+              AND t.status = 4
+            </when>
+          </choose>
+          <choose>
+            <when test="rewardType == 'PAID'">
+              AND t.reward &gt; 0
+            </when>
+            <when test="rewardType == 'FREE'">
+              AND t.reward = 0
+            </when>
+          </choose>
+          <choose>
+            <when test="locationType == 'WITH_LOCATION'">
+              AND t.location IS NOT NULL AND BTRIM(t.location) != ''
+            </when>
+            <when test="locationType == 'UNSPECIFIED'">
+              AND (t.location IS NULL OR BTRIM(t.location) = '')
+            </when>
+          </choose>
           <if test="excludeCompleted">
-            AND t.status != 3
+            AND t.status NOT IN (3, 4)
           </if>
           <if test="keyword != null and keyword != ''">
             AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))
@@ -218,8 +301,41 @@
           <if test="publisherId != null">
             AND t.publisher_id = #{publisherId}
           </if>
+          <choose>
+            <when test="status == 'OPEN'">
+              AND t.status = 0
+            </when>
+            <when test="status == 'PENDING_CONFIRM'">
+              AND t.status = 1
+            </when>
+            <when test="status == 'IN_PROGRESS'">
+              AND t.status = 2
+            </when>
+            <when test="status == 'COMPLETED'">
+              AND t.status = 3
+            </when>
+            <when test="status == 'OFFLINE' or status == 'CANCELLED'">
+              AND t.status = 4
+            </when>
+          </choose>
+          <choose>
+            <when test="rewardType == 'PAID'">
+              AND t.reward &gt; 0
+            </when>
+            <when test="rewardType == 'FREE'">
+              AND t.reward = 0
+            </when>
+          </choose>
+          <choose>
+            <when test="locationType == 'WITH_LOCATION'">
+              AND t.location IS NOT NULL AND BTRIM(t.location) != ''
+            </when>
+            <when test="locationType == 'UNSPECIFIED'">
+              AND (t.location IS NULL OR BTRIM(t.location) = '')
+            </when>
+          </choose>
           <if test="excludeCompleted">
-            AND t.status != 3
+            AND t.status NOT IN (3, 4)
           </if>
           <if test="keyword != null and keyword != ''">
             AND (t.title ILIKE CONCAT('%', #{keyword}, '%') OR t.description ILIKE CONCAT('%', #{keyword}, '%'))
@@ -237,6 +353,13 @@
             t.location,
             CASE WHEN t.location_point IS NOT NULL THEN ST_X(t.location_point::geometry) END AS longitude,
             CASE WHEN t.location_point IS NOT NULL THEN ST_Y(t.location_point::geometry) END AS latitude,
+            t.deadline_time AS deadlineTime,
+            t.item_image_url AS itemImageUrl,
+            t.original_price AS originalPrice,
+            t.team_total_members AS teamTotalMembers,
+            t.team_current_members AS teamCurrentMembers,
+            t.activity_time AS activityTime,
+            t.activity_note AS activityNote,
             u.id AS publisherId,
             u.nickname AS publisherName,
             u.avatar_url AS publisherAvatarUrl,
@@ -302,10 +425,43 @@
           AND is_deleted = false
     </update>
 
+    <update id="incrementTeamCurrentMembers">
+        UPDATE t_task
+        SET team_current_members = team_current_members + 1,
+            status = CASE
+                WHEN team_current_members + 1 &gt;= team_total_members THEN 3
+                ELSE status
+            END,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{taskId}
+          AND is_deleted = false
+          AND category = 3
+          AND status = 2
+          AND team_total_members IS NOT NULL
+          AND team_current_members IS NOT NULL
+          AND team_current_members &lt; team_total_members
+    </update>
+
     <select id="countPublishedByUser" resultType="long">
         SELECT COUNT(1)
         FROM t_task
         WHERE publisher_id = #{userId}
           AND is_deleted = false
+    </select>
+
+    <select id="selectTaskStats" resultType="com.campushub.task.dto.TaskStatsDTO">
+        SELECT
+            (SELECT COUNT(1)
+             FROM t_task
+             WHERE is_deleted = false
+               AND create_time &gt;= CURRENT_DATE) AS todayCreated,
+            (SELECT COUNT(1)
+             FROM t_task
+             WHERE is_deleted = false
+               AND status = 2) AS inProgress,
+            (SELECT COUNT(1)
+             FROM t_task
+             WHERE is_deleted = false
+               AND status = 3) AS completed
     </select>
 </mapper>

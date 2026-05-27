@@ -57,11 +57,14 @@ public class GrabService {
         lock.lock();
         try {
             Task task = taskService.requireTask(request.taskId());
+            if (Objects.equals(task.getPublisherId(), helperId)) {
+                throw new BusinessException(ErrorCode.BUSINESS_ERROR, "不能接取自己发布的需求");
+            }
+            if (Objects.equals(task.getCategory(), TaskCodecs.TASK_CATEGORY_TEAM_UP)) {
+                return applyForTeamUp(task, helperId);
+            }
             if (!Objects.equals(task.getStatus(), TaskCodecs.TASK_STATUS_OPEN)) {
                 throw new BusinessException(ErrorCode.CONFLICT, "任务已被抢单或已关闭");
-            }
-            if (Objects.equals(task.getPublisherId(), helperId)) {
-                throw new BusinessException(ErrorCode.BUSINESS_ERROR, "不能抢自己发布的任务");
             }
             if (!taskStatusService.lockForGrab(task.getId())) {
                 throw new BusinessException(ErrorCode.CONFLICT, "任务已被其他人抢走");
@@ -90,5 +93,30 @@ public class GrabService {
                 lock.unlock();
             }
         }
+    }
+
+    private OrderDetailDTO applyForTeamUp(Task task, Long helperId) {
+        if (!Objects.equals(task.getStatus(), TaskCodecs.TASK_STATUS_IN_PROGRESS)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "组队需求已结束或已取消");
+        }
+        if (task.getTeamTotalMembers() != null
+                && task.getTeamCurrentMembers() != null
+                && task.getTeamCurrentMembers() >= task.getTeamTotalMembers()) {
+            throw new BusinessException(ErrorCode.CONFLICT, "组队人数已满");
+        }
+        Order order = new Order();
+        order.setTaskId(task.getId());
+        order.setPosterId(task.getPublisherId());
+        order.setHelperId(helperId);
+        order.setStatus(OrderCodecs.ORDER_STATUS_PENDING);
+        order.setVersion(0);
+        try {
+            orderMapper.insertOrder(order);
+        } catch (DuplicateKeyException ex) {
+            throw new BusinessException(ErrorCode.CONFLICT, "你已提交过加入申请", ex);
+        }
+        applicationEventPublisher.publishEvent(new OrderCreatedEvent(
+                order.getId(), order.getTaskId(), order.getPosterId(), order.getHelperId()));
+        return orderService.getDetail(order.getId(), helperId);
     }
 }

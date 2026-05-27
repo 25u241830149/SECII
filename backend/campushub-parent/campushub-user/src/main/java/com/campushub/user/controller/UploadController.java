@@ -33,4 +33,10 @@ public class UploadController {
     ) {
         return ApiResponse.success(uploadService.uploadStudentCard(studentId, file));
     }
+
+    @PostMapping("/task-image")
+    public ApiResponse<UploadResultDTO> uploadTaskImage(@RequestParam("file") MultipartFile file) {
+        Long userId = SecurityUtils.getRequiredCurrentUserId();
+        return ApiResponse.success(uploadService.uploadTaskImage(userId, file));
+    }
 }

@@ -107,6 +107,7 @@ const page = ref(1)
 const pageSize = 8
 const typeFilter = ref<'all' | MessageType>('all')
 const readFilter = ref<'all' | 'unread' | 'read'>('all')
+const messageUnreadUpdatedEvent = 'campushub:message-unread-updated'
 
 const formatTime = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false })
 const messageTagType = (type: MessageType) => {
@@ -118,6 +119,10 @@ const messageTagType = (type: MessageType) => {
 
 const loadUnreadCount = async () => {
   unreadCount.value = (await getUnreadMessageCount()).count
+}
+
+const notifyUnreadCountUpdated = () => {
+  window.dispatchEvent(new CustomEvent(messageUnreadUpdatedEvent))
 }
 
 const loadMessages = async () => {
@@ -150,18 +155,21 @@ const readOne = async (messageId: EntityId) => {
   await markMessageRead(messageId)
   ElMessage.success('已标记为已读')
   await loadMessages()
+  notifyUnreadCountUpdated()
 }
 
 const markAllRead = async () => {
   await markAllMessagesRead()
   ElMessage.success('全部消息已读')
   await loadMessages()
+  notifyUnreadCountUpdated()
 }
 
 const removeOne = async (messageId: EntityId) => {
   await deleteMessage(messageId)
   ElMessage.success('消息已删除')
   await loadMessages()
+  notifyUnreadCountUpdated()
 }
 
 onMounted(() => {

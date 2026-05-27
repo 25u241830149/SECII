@@ -40,10 +40,10 @@
         <el-button
           v-if="showGrab"
           type="primary"
-          :disabled="task.status !== 'OPEN'"
+          :disabled="!isJoinableTask(task)"
           @click="$emit('grab', task)"
         >
-          {{ task.status === 'OPEN' ? '立即抢单' : taskStatusLabels[task.status] }}
+          {{ task.category === 'TEAM_UP' && task.status === 'IN_PROGRESS' ? '申请加入' : task.status === 'OPEN' ? '立即抢单' : taskStatusLabels[task.status] }}
         </el-button>
       </div>
     </footer>
@@ -66,6 +66,9 @@ defineEmits<{
   grab: [task: TaskListDTO]
   favorite: [task: TaskListDTO]
 }>()
+
+const isJoinableTask = (task: TaskListDTO) =>
+  task.status === 'OPEN' || (task.category === 'TEAM_UP' && task.status === 'IN_PROGRESS')
 
 const formatTime = (value: string) => {
   const date = new Date(value)

@@ -10,6 +10,7 @@ export const profileTaskCategoryLabels: Record<TaskCategory, string> = {
 
 export const profileTaskStatusLabels: Record<TaskStatus, string> = {
   OPEN: '待接单',
+  PENDING_CONFIRM: '待确认',
   IN_PROGRESS: '进行中',
   COMPLETED: '已完成',
   CANCELLED: '已取消',
@@ -21,15 +22,18 @@ export const profileOrderStatusLabels: Record<OrderStatus, string> = {
   CONFIRMED: '进行中',
   COMPLETED: '已完成',
   CANCELLED: '已取消',
+  WAITING_REVIEW: '待评价',
 }
 
 export const statusToneMap: Record<TaskStatus | OrderStatus, string> = {
   OPEN: 'blue',
+  PENDING_CONFIRM: 'orange',
   IN_PROGRESS: 'blue',
   OFFLINE: 'orange',
   PENDING: 'orange',
   CONFIRMED: 'blue',
   COMPLETED: 'green',
   CANCELLED: 'red',
+  WAITING_REVIEW: 'orange',
 }
 

@@ -3,6 +3,10 @@ import { ElMessage } from 'element-plus'
 
 import type { ApiResponse } from '@/types'
 
+interface RequestConfig extends AxiosRequestConfig {
+  suppressErrorMessage?: boolean
+}
+
 export const TOKEN_STORAGE_KEY = 'campushub.auth.token'
 export const USER_STORAGE_KEY = 'campushub.auth.user'
 
@@ -71,6 +75,7 @@ request.interceptors.response.use(
     const status = error.response?.status
     const body = error.response?.data
     const message = body?.message || error.message || '请求失败，请稍后重试'
+    const suppressErrorMessage = (error.config as RequestConfig | undefined)?.suppressErrorMessage
 
     if (status === 401 && isLoginRequest(error.config?.url)) {
       ElMessage.error(message)
@@ -84,6 +89,8 @@ request.interceptors.response.use(
         )
         window.location.assign(`/login?redirect=${redirect}`)
       }
+    } else if (suppressErrorMessage) {
+      // Background refresh failures are handled by the caller without interrupting the UI.
     } else if (status && status >= 500) {
       ElMessage.error('服务暂时不可用，请稍后再试')
     } else if (message) {
@@ -124,24 +131,24 @@ function unwrapResponse<T>(body: ApiResponse<T> | T): T {
   return body as T
 }
 
-export async function apiRequest<T>(config: AxiosRequestConfig) {
+export async function apiRequest<T>(config: RequestConfig) {
   const response = await request.request<ApiResponse<T> | T>(config)
   return unwrapResponse<T>(response.data)
 }
 
-export function apiGet<T>(url: string, config?: AxiosRequestConfig) {
+export function apiGet<T>(url: string, config?: RequestConfig) {
   return apiRequest<T>({ ...config, method: 'GET', url })
 }
 
-export function apiPost<T, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig) {
+export function apiPost<T, D = unknown>(url: string, data?: D, config?: RequestConfig) {
   return apiRequest<T>({ ...config, method: 'POST', url, data })
 }
 
-export function apiPut<T, D = unknown>(url: string, data?: D, config?: AxiosRequestConfig) {
+export function apiPut<T, D = unknown>(url: string, data?: D, config?: RequestConfig) {
   return apiRequest<T>({ ...config, method: 'PUT', url, data })
 }
 
-export function apiDelete<T>(url: string, config?: AxiosRequestConfig) {
+export function apiDelete<T>(url: string, config?: RequestConfig) {
   return apiRequest<T>({ ...config, method: 'DELETE', url })
 }
 

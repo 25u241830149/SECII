@@ -14,17 +14,19 @@ final class OrderCodecs {
     private OrderCodecs() {
     }
 
-    static int statusCode(String status) {
-        if (status == null || status.isBlank()) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "订单状态不能为空");
+    static String statusKey(String status) {
+        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status.trim())) {
+            return null;
         }
-        return switch (status.trim().toUpperCase(Locale.ROOT)) {
-            case "PENDING" -> ORDER_STATUS_PENDING;
-            case "CONFIRMED" -> ORDER_STATUS_CONFIRMED;
-            case "COMPLETED" -> ORDER_STATUS_COMPLETED;
-            case "CANCELLED" -> ORDER_STATUS_CANCELLED;
-            default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "不支持的订单状态");
-        };
+        String normalized = status.trim().toUpperCase(Locale.ROOT);
+        if (!"PENDING".equals(normalized)
+                && !"CONFIRMED".equals(normalized)
+                && !"COMPLETED".equals(normalized)
+                && !"CANCELLED".equals(normalized)
+                && !"WAITING_REVIEW".equals(normalized)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "不支持的订单状态");
+        }
+        return normalized;
     }
 
     static String normalizeRole(String role) {

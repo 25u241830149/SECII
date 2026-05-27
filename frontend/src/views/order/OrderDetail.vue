@@ -31,6 +31,10 @@
               <small>帮手</small>
               <strong>{{ order.helperName }} / {{ order.helperCreditScore ?? 0 }}</strong>
             </div>
+            <div v-if="order.taskCategory === 'TEAM_UP'">
+              <small>组队进度</small>
+              <strong>{{ order.teamCurrentMembers ?? 0 }}/{{ order.teamTotalMembers ?? 0 }}人</strong>
+            </div>
           </section>
 
           <footer class="actions">
@@ -50,7 +54,7 @@
 
         <ChatPanel v-if="order && isParticipant" :order-id="order.orderId" />
 
-        <section v-if="order?.status === 'COMPLETED'" class="review-area">
+        <section v-if="order?.status === 'COMPLETED' && order.taskCategory !== 'TEAM_UP'" class="review-area">
           <ReviewForm
             v-if="canReview && reviewTarget"
             :order-id="order.orderId"
@@ -113,20 +117,24 @@ const canConfirm = computed(
   () => order.value?.status === 'PENDING' && isPoster.value,
 )
 const canComplete = computed(
-  () => order.value?.status === 'CONFIRMED' && isParticipant.value,
+  () => order.value?.status === 'CONFIRMED' && isPoster.value && order.value.taskCategory !== 'TEAM_UP',
 )
 const canCancel = computed(
   () =>
     order.value !== null &&
     (order.value.status === 'PENDING' || order.value.status === 'CONFIRMED') &&
-    isParticipant.value,
+    isPoster.value,
 )
 const canReview = computed(
-  () => order.value?.status === 'COMPLETED' && isParticipant.value && !hasSubmittedReview.value,
+  () =>
+    order.value?.status === 'COMPLETED' &&
+    order.value.taskCategory !== 'TEAM_UP' &&
+    isParticipant.value &&
+    !hasSubmittedReview.value,
 )
 
 const loadReviews = async () => {
-  if (!order.value || order.value.status !== 'COMPLETED') {
+  if (!order.value || order.value.status !== 'COMPLETED' || order.value.taskCategory === 'TEAM_UP') {
     reviews.value = []
     return
   }

@@ -32,6 +32,35 @@
               <small>收藏人数</small>
               <strong>{{ task.favoriteCount ?? 0 }}</strong>
             </div>
+            <div v-if="task.category === 'TEAM_UP'">
+              <small>组队进度</small>
+              <strong>{{ teamProgressText }}</strong>
+            </div>
+            <div v-if="task.deadlineTime">
+              <small>截止时间</small>
+              <strong>{{ formatDateTime(task.deadlineTime) }}</strong>
+            </div>
+            <div v-if="task.activityTime">
+              <small>活动时间</small>
+              <strong>{{ formatDateTime(task.activityTime) }}</strong>
+            </div>
+          </section>
+
+          <section v-if="task.category === 'SECOND_HAND' && task.itemImageUrl" class="image-box">
+            <img :src="resolveAssetUrl(task.itemImageUrl)" alt="物品图片" />
+            <div>
+              <h2>交易信息</h2>
+              <p>交易地点：{{ task.location || '校内待定地点' }}</p>
+              <p v-if="task.originalPrice !== null && task.originalPrice !== undefined">
+                物品原价：¥{{ Number(task.originalPrice).toFixed(2) }}
+              </p>
+            </div>
+          </section>
+
+          <section v-if="task.category === 'TEAM_UP'" class="location-box">
+            <h2>组队说明</h2>
+            <p>{{ task.activityNote || '发布者未补充活动要求。' }}</p>
+            <p>组队进度：{{ teamProgressText }}</p>
           </section>
 
           <section class="location-box">
@@ -47,8 +76,11 @@
             <el-button @click="toggleFavorite">
               {{ task.favorited ? '取消收藏' : '收藏任务' }}
             </el-button>
-            <el-button type="primary" :disabled="task.status !== 'OPEN'" @click="handleGrab">
-              {{ task.status === 'OPEN' ? '立即抢单' : taskStatusLabels[task.status] }}
+            <el-button v-if="canCancelTask" :loading="cancelling" @click="handleCancelTask">
+              取消需求
+            </el-button>
+            <el-button type="primary" :disabled="!canGrabTask" @click="handleGrab">
+              {{ task.category === 'TEAM_UP' && task.status === 'IN_PROGRESS' ? '申请加入' : task.status === 'OPEN' ? '立即抢单' : taskStatusLabels[task.status] }}
             </el-button>
           </footer>
         </article>
@@ -58,14 +90,16 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 
 import { grabOrder } from '@/api/order'
-import { favoriteTask, getTaskDetail, unfavoriteTask } from '@/api/task'
+import { deleteTask, favoriteTask, getTaskDetail, unfavoriteTask } from '@/api/task'
 import { useAuthStore } from '@/stores'
 import { taskCategoryLabels, taskStatusLabels } from '@/types'
+import { rememberTaskView } from '@/utils/taskRecommendation'
+import { resolveAssetUrl } from '@/utils/asset'
 import type { TaskDetailDTO } from '@/types'
 
 const route = useRoute()
@@ -73,7 +107,30 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const loading = ref(false)
+const cancelling = ref(false)
 const task = ref<TaskDetailDTO | null>(null)
+
+const canGrabTask = computed(() => {
+  const currentTask = task.value
+  if (!currentTask || currentTask.publisherId === authStore.user?.userId) return false
+  return currentTask.status === 'OPEN' || (currentTask.category === 'TEAM_UP' && currentTask.status === 'IN_PROGRESS')
+})
+
+const canCancelTask = computed(() => {
+  const currentTask = task.value
+  return Boolean(
+    currentTask &&
+      currentTask.publisherId === authStore.user?.userId &&
+      currentTask.status !== 'COMPLETED' &&
+      currentTask.status !== 'CANCELLED' &&
+      currentTask.status !== 'OFFLINE',
+  )
+})
+
+const teamProgressText = computed(() => {
+  if (!task.value) return '-'
+  return `${task.value.teamCurrentMembers ?? 0}/${task.value.teamTotalMembers ?? 0}人`
+})
 
 const ensureAuthenticated = () => {
   if (authStore.isAuthenticated) return true
@@ -85,7 +142,9 @@ const ensureAuthenticated = () => {
 const loadTask = async () => {
   loading.value = true
   try {
-    task.value = await getTaskDetail(Number(route.params.taskId))
+    const detail = await getTaskDetail(Number(route.params.taskId))
+    task.value = detail
+    rememberTaskView(detail, authStore.user?.userId)
   } finally {
     loading.value = false
   }
@@ -104,8 +163,31 @@ const toggleFavorite = async () => {
 const handleGrab = async () => {
   if (!task.value || !ensureAuthenticated()) return
   await grabOrder({ taskId: task.value.taskId })
-  ElMessage.success('抢单成功')
+  ElMessage.success(task.value.category === 'TEAM_UP' ? '加入申请已提交' : '抢单成功')
   router.push('/orders')
+}
+
+const handleCancelTask = async () => {
+  if (!task.value || !ensureAuthenticated()) return
+  cancelling.value = true
+  try {
+    await deleteTask(task.value.taskId)
+    ElMessage.success('需求已取消')
+    await loadTask()
+  } finally {
+    cancelling.value = false
+  }
+}
+
+const formatDateTime = (value: string) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 onMounted(loadTask)
@@ -203,6 +285,33 @@ onMounted(loadTask)
 
 .location-box h2 {
   margin: 0 0 10px;
+}
+
+.image-box {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.image-box img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.image-box h2,
+.image-box p {
+  margin: 0;
+}
+
+.image-box p {
+  margin-top: 10px;
+  color: #64748b;
 }
 
 .actions {

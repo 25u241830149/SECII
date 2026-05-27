@@ -5,6 +5,7 @@ import type {
   OrderDetailDTO,
   OrderListDTO,
   OrderListQuery,
+  OrderStatsDTO,
   PageResponse,
 } from '@/types'
 
@@ -26,6 +27,10 @@ export function cancelOrder(orderId: EntityId) {
 
 export function getOrders(query: OrderListQuery) {
   return apiGet<PageResponse<OrderListDTO>>('/orders', { params: query })
+}
+
+export function getOrderStats(userId: EntityId) {
+  return apiGet<OrderStatsDTO>('/orders/summary/stats', { params: { userId } })
 }
 
 export function getOrderDetail(orderId: EntityId) {

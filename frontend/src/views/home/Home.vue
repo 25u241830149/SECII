@@ -99,10 +99,10 @@
                     <el-button plain @click="goDetail(task)">查看详情</el-button>
                     <el-button
                       type="primary"
-                      :disabled="task.status !== 'OPEN'"
+                      :disabled="!isJoinableTask(task)"
                       @click="handleGrab(task)"
                     >
-                      {{ task.status === 'OPEN' ? '立即接单' : taskStatusLabels[task.status] }}
+                      {{ task.category === 'TEAM_UP' && task.status === 'IN_PROGRESS' ? '申请加入' : task.status === 'OPEN' ? '立即接单' : taskStatusLabels[task.status] }}
                     </el-button>
                   </div>
                 </article>
@@ -155,12 +155,17 @@
         </div>
       </section>
 
-      <section class="right-card">
+      <section class="right-card order-status-card">
         <header class="right-head">
           <h2>我的订单状态</h2>
           <RouterLink to="/orders">查看全部 <el-icon><ArrowRight /></el-icon></RouterLink>
         </header>
         <div class="order-grid">
+          <div class="order-box cyan">
+            <el-icon><Box /></el-icon>
+            <span>待接单</span>
+            <strong>{{ orderStats.waitingAcceptance }}</strong>
+          </div>
           <div class="order-box blue">
             <el-icon><Document /></el-icon>
             <span>待确认</span>
@@ -169,12 +174,12 @@
           <div class="order-box green">
             <el-icon><Promotion /></el-icon>
             <span>进行中</span>
-            <strong>{{ orderStats.running }}</strong>
+            <strong>{{ orderStats.inProgress }}</strong>
           </div>
           <div class="order-box orange">
             <el-icon><ChatDotRound /></el-icon>
             <span>待评价</span>
-            <strong>{{ orderStats.reviewing }}</strong>
+            <strong>{{ orderStats.waitingReview }}</strong>
           </div>
           <div class="order-box purple">
             <el-icon><CircleCheck /></el-icon>
@@ -184,44 +189,71 @@
         </div>
       </section>
 
-      <section class="right-card">
+      <section class="right-card recommendation-card">
         <header class="right-head">
           <h2>智能推荐</h2>
           <button type="button" @click="rotateRecommendations">换一换 <el-icon><Refresh /></el-icon></button>
         </header>
-        <p class="hint">你经常接取快递代取任务，以下需求可能适合你</p>
+        <p class="hint">{{ recommendationHint }}</p>
         <div class="recommend-list">
-          <button
-            v-for="task in recommendedTasks"
-            :key="task.taskId"
-            type="button"
-            class="recommend-item"
-            @click="goDetail(task)"
-          >
-            <span :class="['small-icon', categoryMeta[task.category].tone]">
-              <el-icon><component :is="categoryMeta[task.category].icon" /></el-icon>
-            </span>
-            <span>
-              <strong>{{ task.title }}</strong>
-              <small>{{ task.location || '校内待定地点' }}</small>
-            </span>
-            <b>{{ formatReward(task) }}</b>
-          </button>
-          <p v-if="!recommendedTasks.length" class="empty-hint">暂无可推荐需求</p>
+          <template v-for="slot in recommendationSlots" :key="slot.key">
+            <button
+              v-if="slot.task"
+              type="button"
+              class="recommend-item"
+              @click="goDetail(slot.task)"
+            >
+              <span :class="['small-icon', categoryMeta[slot.task.category].tone]">
+                <el-icon><component :is="categoryMeta[slot.task.category].icon" /></el-icon>
+              </span>
+              <span>
+                <strong>{{ slot.task.title }}</strong>
+                <small>{{ slot.task.location || '校内待定地点' }}</small>
+              </span>
+              <b>{{ formatReward(slot.task) }}</b>
+            </button>
+            <p v-else class="recommend-item recommend-placeholder">
+              <span class="small-icon placeholder"><el-icon><MoreFilled /></el-icon></span>
+              <span>
+                <strong>暂无更多推荐</strong>
+                <small>继续浏览后会更懂你</small>
+              </span>
+              <b></b>
+            </p>
+          </template>
         </div>
       </section>
 
-      <section class="right-card">
+      <section class="right-card notice-card">
         <header class="right-head">
           <h2>最新通知</h2>
           <RouterLink to="/messages">查看全部 <el-icon><ArrowRight /></el-icon></RouterLink>
         </header>
         <div class="notice-list">
-          <p v-for="notice in notices" :key="notice.text" class="notice-item">
-            <span :class="['notice-dot', notice.tone]"></span>
-            <span>{{ notice.text }}</span>
-            <small>{{ notice.time }}</small>
-          </p>
+          <template v-if="notices.length">
+            <p v-for="slot in noticeSlots" :key="slot.key" class="notice-item">
+              <template v-if="slot.notice">
+                <span :class="['notice-dot', { unread: !slot.notice.read }]"></span>
+                <span>{{ slot.notice.title || slot.notice.content || '无标题消息' }}</span>
+                <small>{{ formatRelativeTime(slot.notice.createdAt) }}</small>
+              </template>
+              <template v-else>
+                <span class="notice-dot placeholder"></span>
+                <span class="notice-placeholder-text">暂无更多消息</span>
+                <small></small>
+              </template>
+            </p>
+          </template>
+          <div v-else class="notice-empty-state">
+            <div class="empty-box-illustration" aria-hidden="true">
+              <span class="box-lid"></span>
+              <span class="box-body"></span>
+              <span class="box-flap left"></span>
+              <span class="box-flap right"></span>
+              <span class="box-shadow"></span>
+            </div>
+            <p>暂无消息</p>
+          </div>
         </div>
       </section>
 
@@ -241,7 +273,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   ArrowRight,
@@ -266,17 +298,30 @@ import {
 } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { getOrders, grabOrder } from '@/api/order'
+import { getOrders, getOrderStats, grabOrder } from '@/api/order'
+import { getMessages } from '@/api/message'
 import { getTasks } from '@/api/task'
 import { useAppStore, useAuthStore, useFeedStore } from '@/stores'
+import {
+  getRecommendationHint,
+  rankSmartTaskRecommendations,
+  readTaskViewProfile,
+  rememberTaskView,
+  type TaskViewProfileEntry,
+} from '@/utils/taskRecommendation'
 import { resolveAssetUrl } from '@/utils/asset'
 import {
   taskCategoryLabels,
   taskStatusLabels,
+  type LocationTypeFilter,
+  type MessageDTO,
   type OrderListDTO,
+  type OrderStatsDTO,
+  type RewardTypeFilter,
   type SortType,
   type TaskCategory,
   type TaskListDTO,
+  type TaskStatusFilter,
 } from '@/types'
 
 const router = useRouter()
@@ -287,16 +332,29 @@ const authStore = useAuthStore()
 
 const keyword = ref(feedStore.keyword)
 const sort = ref<SortType>(feedStore.sort)
+const statusFilter = ref<TaskStatusFilter>(feedStore.status)
+const rewardTypeFilter = ref<RewardTypeFilter>(feedStore.rewardType)
+const locationTypeFilter = ref<LocationTypeFilter>(feedStore.locationType)
 const activeCategory = ref<TaskCategory | 'ALL'>(feedStore.category)
 const taskPanelRef = ref<HTMLElement>()
 const taskScrollRef = ref<HTMLElement>()
 const orders = ref<OrderListDTO[]>([])
+const orderStats = ref<OrderStatsDTO>({
+  waitingAcceptance: 0,
+  pending: 0,
+  inProgress: 0,
+  waitingReview: 0,
+  completed: 0,
+})
+const recommendationCandidates = ref<TaskListDTO[]>([])
 const recommendationTasks = ref<TaskListDTO[]>([])
+const recommendationProfile = ref<TaskViewProfileEntry[]>([])
 const recommendationOffset = ref(0)
+const notices = ref<MessageDTO[]>([])
 
 const tabs: Array<{ label: string; value: SortType }> = [
-  { label: '推荐需求', value: 'hot' },
   { label: '最新发布', value: 'time' },
+  { label: '热门推荐', value: 'hot' },
 ]
 
 const validCategories = new Set<TaskCategory | 'ALL'>([
@@ -307,6 +365,9 @@ const validCategories = new Set<TaskCategory | 'ALL'>([
   'TEAM_UP',
   'OTHER',
 ])
+const validStatusFilters = new Set<TaskStatusFilter>(['ALL', 'OPEN', 'PENDING_CONFIRM', 'IN_PROGRESS'])
+const validRewardFilters = new Set<RewardTypeFilter>(['ALL', 'PAID', 'FREE'])
+const validLocationFilters = new Set<LocationTypeFilter>(['ALL', 'WITH_LOCATION', 'UNSPECIFIED'])
 
 const categoryMeta: Record<TaskCategory, {
   icon: unknown
@@ -319,12 +380,6 @@ const categoryMeta: Record<TaskCategory, {
   OTHER: { icon: MoreFilled, tone: 'other' },
 }
 
-const notices = [
-  { text: '王同学接取了你的需求', time: '2 分钟前', tone: 'blue' },
-  { text: '你的订单已进入进行中状态', time: '15 分钟前', tone: 'green' },
-  { text: '李同学给你留下了评价', time: '1 小时前', tone: 'purple' },
-]
-
 const displayName = computed(() => authStore.user?.nickname || '同学')
 const currentAvatar = computed(() => resolveAssetUrl(authStore.user?.avatarUrl || ''))
 const avatarFallback = computed(() => displayName.value.slice(0, 1).toUpperCase())
@@ -336,21 +391,35 @@ const creditLevel = computed(() => {
   return '成长中'
 })
 
-const orderStats = computed(() => ({
-  pending: orders.value.filter((order) => order.status === 'PENDING').length,
-  running: orders.value.filter((order) => order.status === 'CONFIRMED').length,
-  reviewing: orders.value.filter((order) => order.status === 'COMPLETED').length,
-  completed: orders.value.filter((order) => order.status === 'COMPLETED').length,
-}))
-
 const completedOrderCount = computed(() => orderStats.value.completed)
+const recommendationHint = computed(() => getRecommendationHint(recommendationProfile.value))
 
 const recommendedTasks = computed(() => {
-  const openTasks = recommendationTasks.value.filter((task) => task.status === 'OPEN')
+  const openTasks = recommendationTasks.value.filter(isJoinableTask)
   if (openTasks.length <= 3) return openTasks
 
   return Array.from({ length: 3 }, (_, index) => {
     return openTasks[(recommendationOffset.value + index) % openTasks.length]
+  })
+})
+
+const recommendationSlots = computed(() => {
+  return Array.from({ length: 3 }, (_, index) => {
+    const task = recommendedTasks.value[index] ?? null
+    return {
+      key: task ? `task-${task.taskId}` : `recommend-empty-${index}`,
+      task,
+    }
+  })
+})
+
+const noticeSlots = computed(() => {
+  return Array.from({ length: 3 }, (_, index) => {
+    const notice = notices.value[index] ?? null
+    return {
+      key: notice ? `notice-${notice.messageId}` : `notice-empty-${index}`,
+      notice,
+    }
   })
 })
 
@@ -364,9 +433,30 @@ const normalizeSort = (value: unknown): SortType => {
   return value === 'hot' ? 'hot' : 'time'
 }
 
+const normalizeStatusFilter = (value: unknown): TaskStatusFilter => {
+  return typeof value === 'string' && validStatusFilters.has(value as TaskStatusFilter)
+    ? (value as TaskStatusFilter)
+    : 'ALL'
+}
+
+const normalizeRewardFilter = (value: unknown): RewardTypeFilter => {
+  return typeof value === 'string' && validRewardFilters.has(value as RewardTypeFilter)
+    ? (value as RewardTypeFilter)
+    : 'ALL'
+}
+
+const normalizeLocationFilter = (value: unknown): LocationTypeFilter => {
+  return typeof value === 'string' && validLocationFilters.has(value as LocationTypeFilter)
+    ? (value as LocationTypeFilter)
+    : 'ALL'
+}
+
 const applyFilters = async () => {
   feedStore.setKeyword(keyword.value)
   feedStore.setSort(sort.value)
+  feedStore.setStatus(statusFilter.value)
+  feedStore.setRewardType(rewardTypeFilter.value)
+  feedStore.setLocationType(locationTypeFilter.value)
   feedStore.setCategory(activeCategory.value)
   appStore.setActiveTaskCategory(activeCategory.value)
 
@@ -376,6 +466,9 @@ const applyFilters = async () => {
       ...(activeCategory.value === 'ALL' ? {} : { category: activeCategory.value }),
       ...(keyword.value.trim() ? { keyword: keyword.value.trim() } : {}),
       ...(sort.value === 'time' ? {} : { sort: sort.value }),
+      ...(statusFilter.value === 'ALL' ? {} : { status: statusFilter.value }),
+      ...(rewardTypeFilter.value === 'ALL' ? {} : { rewardType: rewardTypeFilter.value }),
+      ...(locationTypeFilter.value === 'ALL' ? {} : { locationType: locationTypeFilter.value }),
     },
   })
 
@@ -389,8 +482,14 @@ const switchTab = async (value: SortType) => {
 }
 
 const goDetail = (task: TaskListDTO) => {
+  recommendationProfile.value = rememberTaskView(task, authStore.user?.userId)
+  refreshSmartRecommendations()
   router.push(`/tasks/${task.taskId}`)
 }
+
+const isJoinableTask = (task: TaskListDTO) =>
+  task.publisherId !== authStore.user?.userId &&
+  (task.status === 'OPEN' || (task.category === 'TEAM_UP' && task.status === 'IN_PROGRESS'))
 
 const handlePageChange = async (page: number) => {
   feedStore.setPage(page)
@@ -408,14 +507,23 @@ const ensureAuthenticated = () => {
 const handleGrab = async (task: TaskListDTO) => {
   if (!ensureAuthenticated()) return
   await grabOrder({ taskId: task.taskId })
-  ElMessage.success('抢单成功')
+  ElMessage.success(task.category === 'TEAM_UP' ? '加入申请已提交' : '抢单成功')
   await feedStore.fetchTasks()
+  await feedStore.fetchStats()
   await loadRecommendations()
   await loadOrders()
   router.push('/orders')
 }
 
-const scrollToTasks = () => {
+const scrollToTasks = async () => {
+  activeCategory.value = 'ALL'
+  keyword.value = ''
+  sort.value = 'time'
+  statusFilter.value = 'OPEN'
+  rewardTypeFilter.value = 'ALL'
+  locationTypeFilter.value = 'ALL'
+
+  await applyFilters()
   taskPanelRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
@@ -424,9 +532,9 @@ const scrollTaskListToTop = () => {
 }
 
 const rotateRecommendations = () => {
-  const openCount = recommendationTasks.value.filter((task) => task.status === 'OPEN').length
+  const openCount = recommendationTasks.value.filter(isJoinableTask).length
   if (!openCount) return
-  recommendationOffset.value = (recommendationOffset.value + 1) % openCount
+  recommendationOffset.value = (recommendationOffset.value + 3) % openCount
 }
 
 const formatTaskTitle = (task: TaskListDTO) => {
@@ -435,8 +543,8 @@ const formatTaskTitle = (task: TaskListDTO) => {
 }
 
 const formatReward = (task: TaskListDTO) => {
-  if (task.category === 'TEAM_UP' && (!task.reward || Number(task.reward) === 0)) {
-    return '互助组队'
+  if (task.category === 'TEAM_UP') {
+    return `${task.teamCurrentMembers ?? 0}/${task.teamTotalMembers ?? 0}人`
   }
 
   const rewardNumber = Number(task.reward)
@@ -460,18 +568,63 @@ const formatTime = (value: string) => {
   })
 }
 
+const formatRelativeTime = (value: string) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '刚刚'
+
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000))
+  if (diffSeconds < 60) return '刚刚'
+  const diffMinutes = Math.floor(diffSeconds / 60)
+  if (diffMinutes < 60) return `${diffMinutes} 分钟前`
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `${diffHours} 小时前`
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `${diffDays} 天前`
+
+  return date.toLocaleDateString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+  })
+}
+
 const loadOrders = async () => {
   const userId = authStore.user?.userId
   if (!authStore.isAuthenticated || !userId) {
     orders.value = []
+    orderStats.value = {
+      waitingAcceptance: 0,
+      pending: 0,
+      inProgress: 0,
+      waitingReview: 0,
+      completed: 0,
+    }
     return
   }
 
   try {
     const page = await getOrders({ userId, page: 1, size: 50 })
     orders.value = page.records
+    orderStats.value = await getOrderStats(userId)
   } catch {
     orders.value = []
+    orderStats.value = {
+      waitingAcceptance: 0,
+      pending: 0,
+      inProgress: 0,
+      waitingReview: 0,
+      completed: 0,
+    }
+  }
+}
+
+const refreshSmartRecommendations = (resetOffset = true) => {
+  recommendationProfile.value = readTaskViewProfile(authStore.user?.userId)
+  recommendationTasks.value = rankSmartTaskRecommendations(
+    recommendationCandidates.value,
+    recommendationProfile.value,
+  )
+  if (resetOffset) {
+    recommendationOffset.value = 0
   }
 }
 
@@ -479,28 +632,60 @@ const loadRecommendations = async () => {
   try {
     const page = await getTasks({
       page: 1,
-      size: 10,
+      size: 50,
       sort: 'hot',
       excludeCompleted: true,
     })
-    recommendationTasks.value = page.records
-    recommendationOffset.value = 0
+    recommendationCandidates.value = page.records
+    refreshSmartRecommendations()
   } catch {
+    recommendationCandidates.value = []
     recommendationTasks.value = []
   }
 }
 
+const loadLatestMessages = async () => {
+  if (!authStore.isAuthenticated) {
+    notices.value = []
+    return
+  }
+
+  try {
+    const page = await getMessages({ page: 1, size: 3 })
+    notices.value = page.records
+  } catch {
+    notices.value = []
+  }
+}
+
+const handleMessageUnreadUpdated = () => {
+  loadLatestMessages()
+}
+
 watch(
-  () => [route.query.category, route.query.keyword, route.query.sort],
-  async ([category, routeKeyword, routeSort]) => {
+  () => [
+    route.query.category,
+    route.query.keyword,
+    route.query.sort,
+    route.query.status,
+    route.query.rewardType,
+    route.query.locationType,
+  ],
+  async ([category, routeKeyword, routeSort, routeStatus, routeRewardType, routeLocationType]) => {
     const normalizedCategory = normalizeCategory(category)
     activeCategory.value = normalizedCategory
     keyword.value = typeof routeKeyword === 'string' ? routeKeyword : ''
     sort.value = normalizeSort(routeSort)
+    statusFilter.value = normalizeStatusFilter(routeStatus)
+    rewardTypeFilter.value = normalizeRewardFilter(routeRewardType)
+    locationTypeFilter.value = normalizeLocationFilter(routeLocationType)
 
     feedStore.setCategory(normalizedCategory)
     feedStore.setKeyword(keyword.value)
     feedStore.setSort(sort.value)
+    feedStore.setStatus(statusFilter.value)
+    feedStore.setRewardType(rewardTypeFilter.value)
+    feedStore.setLocationType(locationTypeFilter.value)
     appStore.setActiveTaskCategory(normalizedCategory)
     await feedStore.fetchTasks()
     scrollTaskListToTop()
@@ -512,12 +697,21 @@ watch(
   () => authStore.user?.userId,
   () => {
     loadOrders()
+    loadRecommendations()
+    loadLatestMessages()
   },
 )
 
 onMounted(() => {
+  window.addEventListener('campushub:message-unread-updated', handleMessageUnreadUpdated)
   loadOrders()
   loadRecommendations()
+  loadLatestMessages()
+  feedStore.fetchStats()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('campushub:message-unread-updated', handleMessageUnreadUpdated)
 })
 </script>
 
@@ -542,7 +736,8 @@ onMounted(() => {
 }
 
 .right-sidebar {
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 10px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -869,6 +1064,11 @@ onMounted(() => {
   color: #1268ed;
 }
 
+.status-pill.pending_confirm {
+  background: #fff5e7;
+  color: #f59e0b;
+}
+
 .status-pill.completed {
   background: #f3efff;
   color: #7c3aed;
@@ -897,7 +1097,26 @@ onMounted(() => {
 }
 
 .right-card {
-  padding: 14px;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  overflow: hidden;
+  padding: 12px;
+}
+
+.profile-card {
+  height: 206px;
+}
+
+.order-status-card {
+  height: 160px;
+}
+
+.recommendation-card {
+  height: 260px;
+}
+
+.notice-card {
+  height: 154px;
 }
 
 .profile-top {
@@ -905,6 +1124,10 @@ onMounted(() => {
   grid-template-columns: 72px minmax(0, 1fr) 84px;
   gap: 12px;
   align-items: center;
+}
+
+.profile-top > div {
+  min-width: 0;
 }
 
 .profile-avatar {
@@ -927,16 +1150,22 @@ onMounted(() => {
 
 .role-line {
   display: flex;
+  flex-wrap: nowrap;
   gap: 6px;
 }
 
 .role-line span {
+  display: inline-flex;
+  min-width: 52px;
+  align-items: center;
+  justify-content: center;
   padding: 5px 9px;
   border-radius: 6px;
   background: #eef5ff;
   color: #1268ed;
   font-size: 13px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .role-line span:nth-child(2) {
@@ -1036,15 +1265,17 @@ onMounted(() => {
 
 .order-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
 }
 
 .order-box {
   display: grid;
+  grid-template-rows: auto auto auto;
   min-height: 88px;
-  place-items: center;
-  padding: 12px 6px;
+  align-content: center;
+  justify-items: center;
+  padding: 11px 6px 10px;
   border-radius: 12px;
   text-align: center;
 }
@@ -1052,6 +1283,11 @@ onMounted(() => {
 .order-box.blue {
   background: #f1f7ff;
   color: #1268ed;
+}
+
+.order-box.cyan {
+  background: #eff9ff;
+  color: #0284c7;
 }
 
 .order-box.green {
@@ -1070,17 +1306,21 @@ onMounted(() => {
 }
 
 .order-box :deep(.el-icon) {
-  font-size: 22px;
+  margin-bottom: 5px;
+  font-size: 26px;
 }
 
 .order-box span {
   color: #4b5563;
   font-size: 12px;
+  line-height: 1.1;
 }
 
 .order-box strong {
+  margin-top: 8px;
   color: #1f2937;
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .hint {
@@ -1094,6 +1334,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.recommend-list {
+  min-height: 146px;
+}
+
+.notice-list {
+  height: 92px;
 }
 
 .recommend-item {
@@ -1114,6 +1362,11 @@ onMounted(() => {
 .recommend-item:last-child {
   border-bottom: 0;
   padding-bottom: 0;
+}
+
+.recommend-placeholder {
+  margin: 0;
+  cursor: default;
 }
 
 .small-icon {
@@ -1142,6 +1395,11 @@ onMounted(() => {
   color: #f97316;
 }
 
+.small-icon.placeholder {
+  background: #f3f6fb;
+  color: #a8b3c3;
+}
+
 .recommend-item strong,
 .recommend-item small {
   display: block;
@@ -1168,14 +1426,9 @@ onMounted(() => {
   text-align: right;
 }
 
-.empty-hint {
-  margin: 0;
-  color: #8b95a5;
-  font-size: 13px;
-}
-
 .notice-item {
   display: grid;
+  flex: 1 1 0;
   grid-template-columns: 10px minmax(0, 1fr) 68px;
   gap: 10px;
   align-items: center;
@@ -1188,20 +1441,95 @@ onMounted(() => {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.notice-dot.unread {
   background: #1677ff;
 }
 
-.notice-dot.green {
-  background: #21b485;
-}
-
-.notice-dot.purple {
-  background: #8358ff;
+.notice-dot.placeholder {
+  background: #e2e8f0;
 }
 
 .notice-item small {
   color: #8b95a5;
   text-align: right;
+}
+
+.notice-placeholder-text {
+  color: #94a3b8;
+}
+
+.notice-empty-state {
+  display: grid;
+  height: 100%;
+  align-content: center;
+  justify-items: center;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+
+.notice-empty-state p {
+  margin: 4px 0 0;
+}
+
+.empty-box-illustration {
+  position: relative;
+  width: 94px;
+  height: 56px;
+}
+
+.empty-box-illustration span {
+  position: absolute;
+  display: block;
+}
+
+.box-body {
+  right: 15px;
+  bottom: 5px;
+  left: 18px;
+  height: 32px;
+  background: #eef1f6;
+}
+
+.box-lid {
+  top: 5px;
+  left: 22px;
+  width: 50px;
+  height: 28px;
+  transform: rotate(18deg);
+  background: #f3f5f9;
+  clip-path: polygon(0 16%, 70% 0, 100% 55%, 26% 100%);
+}
+
+.box-flap.left {
+  bottom: 22px;
+  left: 4px;
+  width: 34px;
+  height: 25px;
+  background: #f1f4f8;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.box-flap.right {
+  right: 2px;
+  bottom: 22px;
+  width: 34px;
+  height: 25px;
+  background: #f5f7fb;
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+}
+
+.box-shadow {
+  right: 8px;
+  bottom: 0;
+  left: 8px;
+  height: 9px;
+  border-radius: 50%;
+  background: #f3f5fa;
 }
 
 .admin-card {
@@ -1302,6 +1630,13 @@ onMounted(() => {
   .pager {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .profile-card,
+  .order-status-card,
+  .recommendation-card,
+  .notice-card {
+    height: auto;
   }
 }
 </style>
