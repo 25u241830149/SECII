@@ -228,7 +228,7 @@ const handleSubmit = async () => {
 <style scoped>
 .publish-page {
   display: grid;
-  height: calc(100vh - 122px);
+  height: calc(100vh - 125px);
   min-height: 0;
 }
 

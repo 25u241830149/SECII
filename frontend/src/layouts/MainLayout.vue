@@ -203,7 +203,6 @@ const filterGroups: Array<{
     options: [
       { label: '全部', value: 'ALL' },
       { label: '可接单', value: 'OPEN' },
-      { label: '待确认', value: 'PENDING_CONFIRM' },
       { label: '进行中', value: 'IN_PROGRESS' },
     ],
   },
@@ -647,13 +646,13 @@ onBeforeUnmount(() => {
 }
 
 .status-filter-row {
-  grid-template-columns: 42px repeat(4, minmax(0, 1fr));
-  gap: 5px;
+  grid-template-columns: 42px repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .status-filter-row .pill {
-  padding-right: 4px;
-  padding-left: 4px;
+  padding-right: 6px;
+  padding-left: 6px;
 }
 
 .filter-row b {
