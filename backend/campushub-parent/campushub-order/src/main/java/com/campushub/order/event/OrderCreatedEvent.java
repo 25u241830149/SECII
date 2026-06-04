@@ -4,6 +4,8 @@ public record OrderCreatedEvent(
         Long orderId,
         Long taskId,
         Long posterId,
-        Long helperId
+        Long helperId,
+        String taskTitle,
+        boolean teamUp
 ) {
 }

@@ -60,6 +60,12 @@ public class GrabService {
             if (Objects.equals(task.getPublisherId(), helperId)) {
                 throw new BusinessException(ErrorCode.BUSINESS_ERROR, "不能接取自己发布的需求");
             }
+            if (orderMapper.countOrdersByTaskAndHelper(task.getId(), helperId) > 0) {
+                String message = Objects.equals(task.getCategory(), TaskCodecs.TASK_CATEGORY_TEAM_UP)
+                        ? "你已申请过加入该队伍，无法重复申请"
+                        : "你已申请过该需求，发布者拒绝或订单取消后无法再次接单";
+                throw new BusinessException(ErrorCode.CONFLICT, message);
+            }
             if (Objects.equals(task.getCategory(), TaskCodecs.TASK_CATEGORY_TEAM_UP)) {
                 return applyForTeamUp(task, helperId);
             }
@@ -79,11 +85,12 @@ public class GrabService {
                 order.setVersion(0);
                 orderMapper.insertOrder(order);
                 applicationEventPublisher.publishEvent(new OrderCreatedEvent(
-                        order.getId(), order.getTaskId(), order.getPosterId(), order.getHelperId()));
+                        order.getId(), order.getTaskId(), order.getPosterId(), order.getHelperId(),
+                        task.getTitle(), false));
                 return orderService.getDetail(order.getId(), helperId);
             } catch (DuplicateKeyException ex) {
                 taskStatusService.reopen(task.getId());
-                throw new BusinessException(ErrorCode.CONFLICT, "任务已被其他人抢走", ex);
+                throw new BusinessException(ErrorCode.CONFLICT, "你已申请过该需求，或任务已被其他人抢走", ex);
             } catch (RuntimeException ex) {
                 taskStatusService.reopen(task.getId());
                 throw ex;
@@ -113,10 +120,11 @@ public class GrabService {
         try {
             orderMapper.insertOrder(order);
         } catch (DuplicateKeyException ex) {
-            throw new BusinessException(ErrorCode.CONFLICT, "你已提交过加入申请", ex);
+            throw new BusinessException(ErrorCode.CONFLICT, "你已申请过加入该队伍，无法重复申请", ex);
         }
         applicationEventPublisher.publishEvent(new OrderCreatedEvent(
-                order.getId(), order.getTaskId(), order.getPosterId(), order.getHelperId()));
+                order.getId(), order.getTaskId(), order.getPosterId(), order.getHelperId(),
+                task.getTitle(), true));
         return orderService.getDetail(order.getId(), helperId);
     }
 }

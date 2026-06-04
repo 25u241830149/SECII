@@ -1,5 +1,7 @@
 package com.campushub.user.dto;
 
+import java.math.BigDecimal;
+
 public record UserHomeDTO(
         Long userId,
         String nickname,
@@ -8,6 +10,7 @@ public record UserHomeDTO(
         String creditLevel,
         Integer publishedTaskCount,
         Integer completedOrderCount,
-        Integer reviewCount
+        Integer reviewCount,
+        BigDecimal averageRating
 ) {
 }

@@ -12,18 +12,18 @@
       <div>
         <span>当前信用分</span>
         <strong>{{ score }}</strong>
-        <p>信用优秀，继续保持哦！</p>
+        <p>{{ scoreMessage }}</p>
       </div>
       <div class="medal">★</div>
       <div>
         <span>信用等级</span>
         <strong>{{ level }}</strong>
-        <p>可信用户</p>
+        <p>当前账户等级</p>
       </div>
       <div class="progress-area">
-        <h2>距离下一级 Lv.4 诚信达人 还差 {{ nextScore }} 分</h2>
+        <h2>{{ progressTitle }}</h2>
         <el-progress :percentage="progress" :show-text="false" color="#4169e1" />
-        <p><span>达到 Lv.4 可解锁更多发布权限和专属标识</span><b>{{ score }} / 120</b></p>
+        <p><span>{{ progressHint }}</span><b>{{ score }} / 100</b></p>
       </div>
     </section>
 
@@ -50,34 +50,36 @@
             <span>分值变化</span>
             <span>变动后分值</span>
           </div>
-          <div v-for="record in creditRecords" :key="record.id" class="record-row">
-            <span>{{ record.time }}</span>
+          <div v-for="record in creditRecords" :key="record.recordId" class="record-row">
+            <span>{{ formatTime(record.createdAt) }}</span>
             <span>{{ record.reason }}</span>
             <strong :class="{ negative: record.delta < 0 }">
               {{ record.delta > 0 ? '+' : '' }}{{ record.delta }}
             </strong>
             <span>{{ record.scoreAfter }}</span>
           </div>
+          <el-empty v-if="!creditRecords.length" description="暂无信用变动记录" :image-size="72" />
         </div>
-        <button type="button">查看全部记录</button>
+        <p class="record-caption">展示最近 10 条信用变动记录</p>
       </section>
 
       <section class="credit-card rule-card">
         <h2><el-icon><Document /></el-icon> 加减分说明</h2>
         <div class="rule-box plus">
           <h3>加分项</h3>
-          <p><span>顺利完成任务（按订单金额/难度综合）</span><strong>+5分</strong></p>
-          <p><span>获得互助双方好评</span><strong>+2分</strong></p>
-          <p><span>高质量评价（内容详细、有帮助）</span><strong>+1分</strong></p>
-          <p><span>连续完成多个任务（3单及以上）</span><strong>+2分</strong></p>
+          <p><span>发布的普通需求顺利完成</span><strong>+1分</strong></p>
+          <p><span>接取的普通需求顺利完成</span><strong>+2分</strong></p>
+          <p><span>收到五星评价</span><strong>+3分</strong></p>
+          <p><span>收到四星评价</span><strong>+1分</strong></p>
         </div>
         <div class="rule-box minus">
           <h3>减分项</h3>
-          <p><span>无故取消任务（发起方）</span><strong>-5分</strong></p>
-          <p><span>无故取消任务（接单方）</span><strong>-3分</strong></p>
-          <p><span>收到差评</span><strong>-5分</strong></p>
-          <p><span>违规行为（平台判定）</span><strong>-10分</strong></p>
+          <p><span>接单后、确认前撤回申请</span><strong>-2分</strong></p>
+          <p><span>确认接单后主动退出</span><strong>-5分</strong></p>
+          <p><span>发布者确认接单后取消需求</span><strong>-3分</strong></p>
+          <p><span>收到二星 / 一星评价</span><strong>-2 / -4分</strong></p>
         </div>
+        <p class="neutral-rule">收到三星评价不改变信用分；活动组队完成后不参与信用加分。</p>
       </section>
     </div>
   </section>
@@ -98,25 +100,57 @@ import {
 import { getUserCredit } from '@/api/user'
 import { useAuthStore } from '@/stores'
 import type { CreditDTO } from '@/types'
-import { creditRecords } from './profileMock'
 
 const authStore = useAuthStore()
 const credit = ref<CreditDTO | null>(null)
 
-const score = computed(() => credit.value?.creditScore ?? authStore.user?.creditScore ?? 100)
-const level = computed(() => credit.value?.creditLevel || 'Lv.3')
-const completedRate = computed(() => Math.round((credit.value?.completedRate ?? 1) * 100))
+const score = computed(() => credit.value?.creditScore ?? authStore.user?.creditScore ?? 90)
+const level = computed(() => credit.value?.creditLevel || '普通用户')
+const completedRate = computed(() => Math.round((credit.value?.completedRate ?? 0) * 100))
 const cancelledRate = computed(() => Math.round((credit.value?.cancelledRate ?? 0) * 100))
-const nextScore = computed(() => Math.max(0, 120 - score.value))
-const progress = computed(() => Math.min(100, Math.round((score.value / 120) * 100)))
+const creditRecords = computed(() => credit.value?.recentRecords ?? [])
+const averageRating = computed(() => credit.value?.averageRating ?? null)
+const finishedOrderCount = computed(() =>
+  (credit.value?.completedOrderCount ?? 0) + (credit.value?.cancelledOrderCount ?? 0),
+)
+const progress = computed(() => Math.min(100, Math.max(0, score.value)))
+const nextTier = computed(() => {
+  if (score.value < 60) return { threshold: 60, name: '普通用户' }
+  if (score.value < 80) return { threshold: 80, name: '可靠同学' }
+  if (score.value < 90) return { threshold: 90, name: '诚信学生' }
+  return null
+})
+const scoreMessage = computed(() => {
+  if (score.value >= 90) return '信用表现优秀，请继续保持。'
+  if (score.value >= 80) return '信用表现良好，继续积累可靠记录。'
+  if (score.value >= 60) return '按约完成协作，可以逐步提升信用。'
+  return '信用分较低，请优先完成已确认的协作。'
+})
+const progressTitle = computed(() =>
+  nextTier.value
+    ? `距离 ${nextTier.value.name} 还差 ${nextTier.value.threshold - score.value} 分`
+    : '已达到最高信用等级',
+)
+const progressHint = computed(() =>
+  nextTier.value ? `达到 ${nextTier.value.threshold} 分后升级为${nextTier.value.name}` : '信用分上限为 100 分',
+)
+const rateHelper = computed(() => finishedOrderCount.value ? `基于 ${finishedOrderCount.value} 次已结束接单` : '暂无已结束接单')
 
 const metrics = computed(() => [
-  { label: '完成率', value: `${completedRate.value}%`, helper: '优秀', icon: CircleCheck, tone: 'green' },
-  { label: '取消率', value: `${cancelledRate.value}%`, helper: '优秀', icon: CircleClose, tone: 'red' },
-  { label: '评价数', value: 15, helper: '累计获得', icon: Comment, tone: 'orange' },
-  { label: '发布任务数', value: 12, helper: '累计发布', icon: Position, tone: 'blue' },
-  { label: '完成接单数', value: 8, helper: '累计完成', icon: CircleCheck, tone: 'green' },
+  { label: '完成率', value: `${completedRate.value}%`, helper: rateHelper.value, icon: CircleCheck, tone: 'green' },
+  { label: '取消率', value: `${cancelledRate.value}%`, helper: rateHelper.value, icon: CircleClose, tone: 'red' },
+  {
+    label: '评价数',
+    value: credit.value?.reviewCount ?? 0,
+    helper: averageRating.value === null ? '暂无评分' : `平均 ${Number(averageRating.value).toFixed(1)} 分`,
+    icon: Comment,
+    tone: 'orange',
+  },
+  { label: '发布需求数', value: credit.value?.publishedTaskCount ?? 0, helper: '累计发布', icon: Position, tone: 'blue' },
+  { label: '完成接单数', value: credit.value?.completedOrderCount ?? 0, helper: '累计完成', icon: CircleCheck, tone: 'green' },
 ])
+
+const formatTime = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false })
 
 onMounted(async () => {
   const userId = authStore.user?.userId
@@ -355,15 +389,11 @@ onMounted(async () => {
   color: #ef4444;
 }
 
-.credit-card > button {
-  display: block;
-  margin: 18px auto 0;
-  border: 0;
-  background: transparent;
-  color: #4169e1;
-  font: inherit;
-  font-weight: 800;
-  cursor: pointer;
+.record-caption {
+  margin: 18px 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
 }
 
 .rule-card {
@@ -431,6 +461,13 @@ onMounted(async () => {
 
 .rule-box.minus strong {
   color: #ef4444;
+}
+
+.neutral-rule {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 @media (max-width: 1180px) {

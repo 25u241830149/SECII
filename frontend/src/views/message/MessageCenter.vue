@@ -24,7 +24,7 @@
         <el-skeleton :loading="loading" animated :rows="6">
           <template #default>
             <el-empty v-if="!messages.length" description="暂无消息" />
-            <template v-else>
+            <div v-else class="message-list">
               <article
                 v-for="message in messages"
                 :key="message.messageId"
@@ -47,7 +47,7 @@
                   <el-button type="danger" plain @click="removeOne(message.messageId)">删除</el-button>
                 </div>
               </article>
-            </template>
+            </div>
           </template>
         </el-skeleton>
 
@@ -104,7 +104,7 @@ const notices = ref<NoticeDTO[]>([])
 const unreadCount = ref(0)
 const total = ref(0)
 const page = ref(1)
-const pageSize = 8
+const pageSize = 10
 const typeFilter = ref<'all' | MessageType>('all')
 const readFilter = ref<'all' | 'unread' | 'read'>('all')
 const messageUnreadUpdatedEvent = 'campushub:message-unread-updated'
@@ -181,7 +181,10 @@ onMounted(() => {
 <style scoped>
 .message-page {
   display: grid;
+  height: calc(100vh - 122px);
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 18px;
+  min-height: 0;
 }
 
 .toolbar-card,
@@ -232,11 +235,46 @@ onMounted(() => {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 18px;
+  min-height: 0;
 }
 
 .list-card,
 .notice-card {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
   padding: 20px;
+}
+
+.list-card :deep(.el-skeleton),
+.list-card :deep(.el-skeleton__content) {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.message-list,
+.notice-list {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+
+.message-list {
+  flex: 1;
+}
+
+.message-list::-webkit-scrollbar,
+.notice-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.message-list::-webkit-scrollbar-thumb,
+.notice-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
 }
 
 .message-row {
@@ -297,6 +335,7 @@ onMounted(() => {
   gap: 12px;
   margin-top: 18px;
   color: #64748b;
+  flex-shrink: 0;
 }
 
 .notice-card header {
@@ -316,6 +355,8 @@ onMounted(() => {
 .notice-list {
   display: grid;
   gap: 12px;
+  flex: 1;
+  align-content: start;
 }
 
 .notice-item {
@@ -342,6 +383,10 @@ onMounted(() => {
 }
 
 @media (max-width: 1100px) {
+  .message-page {
+    height: auto;
+  }
+
   .toolbar-card,
   .content-grid,
   .message-row,
@@ -356,6 +401,11 @@ onMounted(() => {
 
   .row-actions {
     justify-content: flex-start;
+  }
+
+  .message-list,
+  .notice-list {
+    max-height: 520px;
   }
 }
 </style>

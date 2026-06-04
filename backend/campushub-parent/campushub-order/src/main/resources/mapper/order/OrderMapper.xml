@@ -37,7 +37,6 @@
         <choose>
             <when test="status == 'PENDING'">
               AND o.status = 0
-              AND t.category != 3
             </when>
             <when test="status == 'CONFIRMED'">
               AND o.status = 1
@@ -85,6 +84,14 @@
             #{version}
         )
     </insert>
+
+    <select id="countOrdersByTaskAndHelper" resultType="long">
+        SELECT COUNT(1)
+        FROM t_order
+        WHERE task_id = #{taskId}
+          AND helper_id = #{helperId}
+          AND is_deleted = false
+    </select>
 
     <select id="selectOrderById" resultMap="OrderResultMap">
         SELECT id, task_id, poster_id, helper_id, status, version, create_time, update_time, is_deleted
@@ -218,14 +225,22 @@
              WHERE o.is_deleted = false
                AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
                AND o.status = 0
-               AND t.category != 3) AS pending,
-            (SELECT COUNT(1)
+               ) AS pending,
+            ((SELECT COUNT(1)
              FROM t_order o
              JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
              WHERE o.is_deleted = false
                AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
                AND o.status = 1
-               AND t.status != 4) AS inProgress,
+               AND t.status != 4
+               AND (t.category != 3 OR o.helper_id = #{userId}))
+             +
+             (SELECT COUNT(1)
+              FROM t_task t
+              WHERE t.publisher_id = #{userId}
+                AND t.category = 3
+                AND t.status = 2
+                AND t.is_deleted = false)) AS inProgress,
             (SELECT COUNT(1)
              FROM t_order o
              JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false

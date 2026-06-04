@@ -2,8 +2,8 @@
   <section class="chat-panel">
     <header class="panel-head">
       <div>
-        <h2>订单沟通</h2>
-        <p>仅订单双方可见，刷新时会自动同步最新消息。</p>
+        <h2>{{ panelTitle }}</h2>
+        <p>{{ panelDescription }}</p>
       </div>
       <el-button :loading="loading" @click="loadMessages">刷新</el-button>
     </header>
@@ -40,16 +40,19 @@
         v-model="draft"
         maxlength="500"
         show-word-limit
-        placeholder="输入给对方的订单消息"
+        :disabled="disabled"
+        :placeholder="inputPlaceholder"
       />
-      <el-button type="primary" native-type="submit" :loading="sending">发送</el-button>
+      <el-button type="primary" native-type="submit" :loading="sending">
+        {{ disabled ? '沟通已关闭' : '发送' }}
+      </el-button>
     </form>
   </section>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { getOrderChat, sendOrderChat } from '@/api/message'
 import { useAuthStore } from '@/stores'
@@ -58,6 +61,9 @@ import type { ChatMessageDTO, EntityId } from '@/types'
 
 const props = defineProps<{
   orderId: EntityId
+  teamUp?: boolean
+  disabled?: boolean
+  disabledReason?: string
 }>()
 
 const authStore = useAuthStore()
@@ -66,6 +72,19 @@ const sending = ref(false)
 const draft = ref('')
 const messages = ref<ChatMessageDTO[]>([])
 const messageBox = ref<HTMLDivElement>()
+const panelTitle = computed(() => (props.teamUp ? '队伍沟通' : '订单沟通'))
+const panelDescription = computed(() => (
+  props.disabled
+    ? props.disabledReason || '当前沟通渠道已关闭，无法继续发送消息。'
+    : props.teamUp
+      ? '仅组队发起人与申请同学可见，刷新时会自动同步最新消息。'
+      : '仅订单双方可见，刷新时会自动同步最新消息。'
+))
+const inputPlaceholder = computed(() => (
+  props.teamUp
+    ? props.disabled ? '队伍沟通已关闭' : '输入组队沟通消息'
+    : props.disabled ? '订单沟通已关闭' : '输入给对方的订单消息'
+))
 
 const formatTime = (value: string) => new Date(value).toLocaleString('zh-CN', { hour12: false })
 const fallbackName = (name: string) => (name || '同学').slice(0, 1).toUpperCase()
@@ -89,6 +108,18 @@ const loadMessages = async () => {
 }
 
 const sendMessage = async () => {
+  if (props.disabled) {
+    await ElMessageBox.alert(
+      props.disabledReason || '当前沟通渠道已关闭，无法继续发送消息。',
+      props.teamUp ? '队伍沟通已关闭' : '订单沟通已关闭',
+      {
+        confirmButtonText: '知道了',
+        type: 'warning',
+      },
+    )
+    return
+  }
+
   const content = draft.value.trim()
   if (!content) {
     ElMessage.warning('请输入消息内容')
@@ -112,12 +143,23 @@ onMounted(loadMessages)
 <style scoped>
 .chat-panel {
   display: grid;
+  box-sizing: border-box;
+  height: 430px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 14px;
   padding: 22px;
   border: 1px solid #e7edf7;
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
+}
+
+.chat-panel :deep(.el-skeleton),
+.chat-panel :deep(.el-skeleton__content) {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
 }
 
 .panel-head,
@@ -147,7 +189,9 @@ onMounted(loadMessages)
 
 .message-box {
   display: grid;
-  max-height: 360px;
+  min-height: 0;
+  flex: 1;
+  align-content: start;
   gap: 12px;
   overflow-y: auto;
   padding: 14px;

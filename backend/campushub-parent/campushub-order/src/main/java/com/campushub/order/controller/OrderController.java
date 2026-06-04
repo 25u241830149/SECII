@@ -60,6 +60,18 @@ public class OrderController {
         return ApiResponse.success(orderStatusService.cancel(orderId, currentUserId));
     }
 
+    @PostMapping("/{orderId}/reject")
+    public ApiResponse<OrderDetailDTO> reject(@PathVariable Long orderId) {
+        Long currentUserId = SecurityUtils.getRequiredCurrentUserId();
+        return ApiResponse.success(orderStatusService.reject(orderId, currentUserId));
+    }
+
+    @PostMapping("/{orderId}/abandon")
+    public ApiResponse<OrderDetailDTO> abandon(@PathVariable Long orderId) {
+        Long currentUserId = SecurityUtils.getRequiredCurrentUserId();
+        return ApiResponse.success(orderStatusService.abandon(orderId, currentUserId));
+    }
+
     @GetMapping("/summary/stats")
     public ApiResponse<OrderStatsDTO> summaryStats(@RequestParam Long userId) {
         return ApiResponse.success(orderService.stats(userId));

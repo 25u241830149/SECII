@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS u_user (
     department VARCHAR(64),
     avatar_url VARCHAR(255),
     role SMALLINT NOT NULL DEFAULT 0,
-    credit_score INTEGER NOT NULL DEFAULT 100,
+    credit_score INTEGER NOT NULL DEFAULT 90,
     status SMALLINT NOT NULL DEFAULT 0,
     create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS t_task (
     CONSTRAINT ck_task_status CHECK (status IN (0, 1, 2, 3, 4))
 );
 
+ALTER TABLE u_user ALTER COLUMN credit_score SET DEFAULT 90;
+
 ALTER TABLE t_task ADD COLUMN IF NOT EXISTS deadline_time TIMESTAMPTZ;
 ALTER TABLE t_task ADD COLUMN IF NOT EXISTS item_image_url VARCHAR(512);
 ALTER TABLE t_task ADD COLUMN IF NOT EXISTS original_price NUMERIC(10, 2);
@@ -117,6 +119,17 @@ CREATE TABLE IF NOT EXISTS t_task_favorite (
 );
 
 COMMENT ON TABLE t_task_favorite IS 'User favorite tasks';
+
+CREATE TABLE IF NOT EXISTS t_task_comment (
+    id BIGSERIAL PRIMARY KEY,
+    task_id BIGINT NOT NULL REFERENCES t_task(id),
+    author_id BIGINT NOT NULL REFERENCES u_user(id),
+    content VARCHAR(500) NOT NULL,
+    create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+COMMENT ON TABLE t_task_comment IS 'Public discussion comments for a task';
 
 CREATE TABLE IF NOT EXISTS t_order (
     id BIGSERIAL PRIMARY KEY,
@@ -153,6 +166,20 @@ CREATE TABLE IF NOT EXISTS t_review (
 );
 
 COMMENT ON TABLE t_review IS 'Mutual order reviews';
+
+CREATE TABLE IF NOT EXISTS t_credit_record (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES u_user(id),
+    reason VARCHAR(128) NOT NULL,
+    delta INTEGER NOT NULL,
+    score_after INTEGER NOT NULL,
+    order_id BIGINT REFERENCES t_order(id),
+    review_id BIGINT REFERENCES t_review(id),
+    create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT ck_credit_record_score_after CHECK (score_after BETWEEN 0 AND 100)
+);
+
+COMMENT ON TABLE t_credit_record IS 'Auditable user credit score changes';
 
 CREATE TABLE IF NOT EXISTS t_message (
     id BIGSERIAL PRIMARY KEY,
@@ -296,6 +323,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_order_task_helper ON t_order (task_id, help
 CREATE INDEX IF NOT EXISTS idx_review_order ON t_review (order_id);
 CREATE INDEX IF NOT EXISTS idx_review_target_time ON t_review (target_user_id, create_time DESC);
 CREATE INDEX IF NOT EXISTS idx_review_reviewer_time ON t_review (reviewer_id, create_time DESC);
+
+CREATE INDEX IF NOT EXISTS idx_credit_record_user_time ON t_credit_record (user_id, create_time DESC);
 
 CREATE INDEX IF NOT EXISTS idx_message_receiver_read ON t_message (receiver_id, is_read);
 CREATE INDEX IF NOT EXISTS idx_message_receiver_time ON t_message (receiver_id, create_time DESC);

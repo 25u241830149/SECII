@@ -7,17 +7,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class UploadService {
+
+    private static final Logger log = LoggerFactory.getLogger(UploadService.class);
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg",
@@ -45,6 +48,7 @@ public class UploadService {
         this.publicPrefix = normalizePublicPrefix(publicPrefix);
         this.avatarMaxSize = avatarMaxSize;
         this.studentCardMaxSize = studentCardMaxSize;
+        log.info("Upload base path resolved to: {}", this.uploadBasePath);
     }
 
     public UploadResultDTO uploadAvatar(Long userId, MultipartFile file) {
@@ -81,12 +85,17 @@ public class UploadService {
 
         try {
             Files.createDirectories(targetDirectory);
-            Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+            // 使用 transferTo 替代 Files.copy，由 Servlet 容器的 Part.write()
+            // 保证文件完整写入，避免 Linux 上 MultipartFile 输入流的潜在问题
+            file.transferTo(targetFile.toFile());
+            log.info("File saved: {} ({} bytes)", targetFile, file.getSize());
         } catch (IOException ex) {
+            log.error("Failed to save file to {}: {}", targetFile, ex.getMessage());
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "文件保存失败");
         }
 
         String fileUrl = publicPrefix + "/" + category + "/" + ownerKey + "/" + filename;
+        log.debug("File URL: {}", fileUrl);
         return new UploadResultDTO(fileUrl, file.getOriginalFilename(), contentType, file.getSize());
     }
 

@@ -36,6 +36,10 @@ public class TaskStatusService {
         return taskMapper.incrementTeamCurrentMembers(taskId) > 0;
     }
 
+    public void decrementTeamCurrentMembers(Long taskId) {
+        taskMapper.decrementTeamCurrentMembers(taskId);
+    }
+
     public void markCancelled(Long taskId) {
         taskMapper.forceUpdateTaskStatus(taskId, TaskCodecs.TASK_STATUS_CANCELLED);
     }

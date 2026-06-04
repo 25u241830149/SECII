@@ -45,7 +45,7 @@
               </div>
               <div class="price">{{ formatReward(item) }}</div>
               <span :class="['status-badge', item.tone]">{{ item.statusText }}</span>
-              <el-button @click="router.push(item.detailPath)">{{ item.actionText }}</el-button>
+              <el-button @click="goDetail(item)">{{ item.actionText }}</el-button>
             </article>
           </div>
         </template>
@@ -66,8 +66,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { getOrders } from '@/api/order'
 import { getPublishedTasks } from '@/api/task'
@@ -95,6 +95,7 @@ interface ListItem {
 }
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const loading = ref(false)
@@ -160,7 +161,7 @@ const orderTone = (status: OrderStatus, waitingReview = false): BadgeTone => {
   return 'gray'
 }
 
-const taskToItem = (task: TaskListDTO): ListItem => ({
+const taskToItem = (task: TaskListDTO, orderId?: number): ListItem => ({
   key: `task-${task.taskId}`,
   title: task.title,
   category: task.category,
@@ -172,7 +173,7 @@ const taskToItem = (task: TaskListDTO): ListItem => ({
     ? `组队进度：${task.teamCurrentMembers ?? 0}/${task.teamTotalMembers ?? 0}人`
     : `发布者：${task.publisherName}`,
   createdAt: task.createdAt,
-  detailPath: `/tasks/${task.taskId}`,
+  detailPath: orderId ? `/orders/${orderId}` : `/tasks/${task.taskId}`,
   actionText: '查看详情',
 })
 
@@ -185,7 +186,7 @@ const orderToItem = (order: OrderListDTO, waitingReview = false): ListItem => ({
   statusText: waitingReview ? '待评价' : orderStatusLabels[order.status],
   tone: orderTone(order.status, waitingReview),
   meta: order.taskCategory === 'TEAM_UP'
-    ? `发布者：${order.posterName} · 组队进度：${order.teamCurrentMembers ?? 0}/${order.teamTotalMembers ?? 0}人`
+    ? `发起人：${order.posterName} · 组队进度：${order.teamCurrentMembers ?? 0}/${order.teamTotalMembers ?? 0}人`
     : `发布者：${order.posterName} · 帮手：${order.helperName}`,
   createdAt: order.createdAt,
   detailPath: `/orders/${order.orderId}`,
@@ -203,6 +204,17 @@ const formatReward = (item: ListItem) => {
   return `¥${rewardNumber.toFixed(2)}`
 }
 
+const goDetail = (item: ListItem) => {
+  router.push({
+    path: item.detailPath,
+    query: {
+      fromRole: activeRole.value,
+      fromStatus: activeStatus.value,
+      fromPage: String(page.value),
+    },
+  })
+}
+
 const loadTaskItems = async (status?: TaskQueryStatus) => {
   if (!authStore.user) return { records: [] as ListItem[], total: 0 }
   const result = await getPublishedTasks({
@@ -211,8 +223,28 @@ const loadTaskItems = async (status?: TaskQueryStatus) => {
     page: page.value,
     size: pageSize,
   })
+  const shouldLinkOrders = status !== 'OPEN'
+  const orderResult = shouldLinkOrders
+    ? await getOrders({
+        userId: authStore.user.userId,
+        role: 'poster',
+        page: 1,
+        size: 50,
+      })
+    : null
+  const matchingOrderByTask = new Map<number, number>()
+  orderResult?.records.forEach((order) => {
+    const matchesTaskStatus =
+      (order.status === 'PENDING' && result.records.some((task) => task.taskId === order.taskId && task.status === 'PENDING_CONFIRM')) ||
+      (order.status === 'CONFIRMED' && result.records.some((task) => task.taskId === order.taskId && task.status === 'IN_PROGRESS')) ||
+      (order.status === 'COMPLETED' && result.records.some((task) => task.taskId === order.taskId && task.status === 'COMPLETED')) ||
+      (order.status === 'CANCELLED' && result.records.some((task) => task.taskId === order.taskId && task.status === 'CANCELLED'))
+    if (matchesTaskStatus && !matchingOrderByTask.has(order.taskId)) {
+      matchingOrderByTask.set(order.taskId, order.orderId)
+    }
+  })
   return {
-    records: result.records.map(taskToItem),
+    records: result.records.map((task) => taskToItem(task, matchingOrderByTask.get(task.taskId))),
     total: result.total,
   }
 }
@@ -233,8 +265,16 @@ const loadOrderItems = async (role: 'poster' | 'helper', status?: OrderStatus) =
 }
 
 const loadPublishedItems = async () => {
-  if (activeStatus.value === 'WAITING_REVIEW') {
-    return loadOrderItems('poster', 'WAITING_REVIEW')
+  if (activeStatus.value === 'CONFIRMED') {
+    return loadTaskItems('IN_PROGRESS')
+  }
+
+  if (
+    activeStatus.value === 'PENDING' ||
+    activeStatus.value === 'WAITING_REVIEW' ||
+    activeStatus.value === 'COMPLETED'
+  ) {
+    return loadOrderItems('poster', orderStatusByFilter[activeStatus.value])
   }
 
   return loadTaskItems(taskStatusByFilter[activeStatus.value])
@@ -263,24 +303,55 @@ const loadItems = async () => {
   }
 }
 
+const updateListRoute = (role: RoleFilter, status: StatusFilter, currentPage: number) => {
+  router.push({
+    path: '/orders',
+    query: {
+      role,
+      status,
+      page: String(currentPage),
+    },
+  })
+}
+
 const switchRole = (role: RoleFilter) => {
-  activeRole.value = role
-  activeStatus.value = 'ALL'
-  page.value = 1
-  loadItems()
+  updateListRoute(role, 'ALL', 1)
 }
 
 const switchStatus = (status: StatusFilter) => {
-  activeStatus.value = status
-  page.value = 1
-  loadItems()
+  updateListRoute(activeRole.value, status, 1)
 }
 
-const handlePageChange = () => {
-  loadItems()
+const handlePageChange = (currentPage: number) => {
+  updateListRoute(activeRole.value, activeStatus.value, currentPage)
 }
 
-onMounted(loadItems)
+watch(
+  () => [route.query.role, route.query.status, route.query.page],
+  () => {
+    const requestedRole = String(route.query.role || '')
+    activeRole.value = requestedRole === 'accepted' ? 'accepted' : 'published'
+
+    const requestedStatus = String(route.query.status || '')
+    const allowedStatus = allStatusTabs.some((tab) => tab.value === requestedStatus)
+      && !(activeRole.value === 'accepted' && requestedStatus === 'OPEN')
+    if (allowedStatus) {
+      activeStatus.value = requestedStatus as StatusFilter
+    } else {
+      activeStatus.value = 'ALL'
+    }
+
+    const requestedPage = Number(route.query.page)
+    if (Number.isInteger(requestedPage) && requestedPage > 0) {
+      page.value = requestedPage
+    } else {
+      page.value = 1
+    }
+
+    loadItems()
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>

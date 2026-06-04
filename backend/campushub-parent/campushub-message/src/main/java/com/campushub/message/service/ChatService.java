@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChatService {
 
     private static final int MAX_CONTENT_LENGTH = 1000;
+    private static final int ORDER_STATUS_CANCELLED = 3;
 
     private final ChatMessageMapper chatMessageMapper;
     private final OrderService orderService;
@@ -30,6 +31,9 @@ public class ChatService {
     @Transactional
     public ChatMessageDTO send(Long orderId, Long senderId, ChatSendRequest request) {
         Order order = orderService.requireAccessibleOrder(orderId, senderId);
+        if (Objects.equals(order.getStatus(), ORDER_STATUS_CANCELLED)) {
+            throw new BusinessException(ErrorCode.CONFLICT, "该沟通渠道已关闭，无法继续发送消息");
+        }
         if (request == null || request.content() == null || request.content().isBlank()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "聊天内容不能为空");
         }

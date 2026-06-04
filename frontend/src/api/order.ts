@@ -17,6 +17,14 @@ export function confirmOrder(orderId: EntityId) {
   return apiPost<OrderDetailDTO>(`/orders/${orderId}/confirm`)
 }
 
+export function rejectOrder(orderId: EntityId) {
+  return apiPost<OrderDetailDTO>(`/orders/${orderId}/reject`)
+}
+
+export function abandonOrder(orderId: EntityId) {
+  return apiPost<OrderDetailDTO>(`/orders/${orderId}/abandon`)
+}
+
 export function completeOrder(orderId: EntityId) {
   return apiPost<OrderDetailDTO>(`/orders/${orderId}/complete`)
 }

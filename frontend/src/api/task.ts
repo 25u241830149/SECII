@@ -8,11 +8,24 @@ import type {
   TaskListDTO,
   TaskListQuery,
   TaskMutationPayload,
+  TaskCommentDTO,
   TaskStatsDTO,
 } from '@/types'
 
 export function getTasks(query: TaskListQuery = {}) {
   return apiGet<PageResponse<TaskListDTO>>('/tasks', { params: query })
+}
+
+export function getTaskComments(taskId: EntityId) {
+  return apiGet<TaskCommentDTO[]>(`/tasks/${taskId}/comments`)
+}
+
+export function createTaskComment(taskId: EntityId, content: string) {
+  return apiPost<TaskCommentDTO[], { content: string }>(`/tasks/${taskId}/comments`, { content })
+}
+
+export function deleteTaskComment(taskId: EntityId, commentId: EntityId) {
+  return apiDelete<void>(`/tasks/${taskId}/comments/${commentId}`)
 }
 
 export function getTaskStats() {

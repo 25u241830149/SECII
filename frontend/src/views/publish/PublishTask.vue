@@ -41,15 +41,6 @@
             <el-input v-model="form.location" placeholder="例如：南门菜鸟驿站 / 理学楼 307" />
           </el-form-item>
 
-          <el-form-item v-if="form.category !== 'TEAM_UP'" label="截止时间">
-            <el-date-picker
-              v-model="form.deadlineTime"
-              type="datetime"
-              placeholder="选择截止时间"
-              style="width: 100%"
-            />
-          </el-form-item>
-
           <template v-if="form.category === 'SECOND_HAND'">
             <el-form-item label="物品原价">
               <el-input-number v-model="form.originalPrice" :min="0" :step="1" :precision="2" />
@@ -124,7 +115,6 @@ const form = reactive<TaskMutationPayload>({
   category: 'EXPRESS',
   reward: 0,
   location: '',
-  deadlineTime: null,
   itemImageUrl: null,
   originalPrice: null,
   teamTotalMembers: 2,
@@ -173,7 +163,6 @@ watch(
       form.activityTime = null
       form.activityNote = null
     } else {
-      form.deadlineTime = null
       form.teamTotalMembers = form.teamTotalMembers ?? 2
       form.teamCurrentMembers = form.teamCurrentMembers ?? 1
     }
@@ -204,7 +193,6 @@ const buildPayload = (): TaskMutationPayload => ({
   category: form.category,
   reward: form.reward,
   location: form.location,
-  deadlineTime: form.deadlineTime || null,
   itemImageUrl: form.category === 'SECOND_HAND' ? form.itemImageUrl || null : null,
   originalPrice: form.category === 'SECOND_HAND' ? form.originalPrice ?? null : null,
   teamTotalMembers: form.category === 'TEAM_UP' ? form.teamTotalMembers ?? null : null,

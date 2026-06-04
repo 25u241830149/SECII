@@ -733,6 +733,7 @@ onBeforeUnmount(() => {
 }
 
 .content-area {
+  min-height: 0;
   min-width: 0;
 }
 

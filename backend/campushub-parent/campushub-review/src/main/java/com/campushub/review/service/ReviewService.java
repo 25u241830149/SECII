@@ -16,7 +16,7 @@ import com.campushub.task.entity.Task;
 import com.campushub.task.service.TaskCodecs;
 import com.campushub.task.service.TaskService;
 import com.campushub.user.entity.User;
-import com.campushub.user.mapper.UserMapper;
+import com.campushub.user.service.CreditService;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +34,7 @@ public class ReviewService {
     private final ReviewMapper reviewMapper;
     private final OrderService orderService;
     private final TaskService taskService;
-    private final UserMapper userMapper;
+    private final CreditService creditService;
     private final CreditCalculator creditCalculator;
     private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -42,14 +42,14 @@ public class ReviewService {
             ReviewMapper reviewMapper,
             OrderService orderService,
             TaskService taskService,
-            UserMapper userMapper,
+            CreditService creditService,
             CreditCalculator creditCalculator,
             ApplicationEventPublisher applicationEventPublisher
     ) {
         this.reviewMapper = reviewMapper;
         this.orderService = orderService;
         this.taskService = taskService;
-        this.userMapper = userMapper;
+        this.creditService = creditService;
         this.creditCalculator = creditCalculator;
         this.applicationEventPublisher = applicationEventPublisher;
     }
@@ -93,7 +93,13 @@ public class ReviewService {
             throw new BusinessException(ErrorCode.CONFLICT, "你已评价过该订单", ex);
         }
 
-        refreshCreditScore(request.targetUserId());
+        creditService.adjustCreditScore(
+                request.targetUserId(),
+                creditCalculator.adjustmentForRating(request.rating()),
+                "收到" + request.rating() + "星评价",
+                review.getOrderId(),
+                review.getId()
+        );
         applicationEventPublisher.publishEvent(new ReviewCreatedEvent(
                 review.getId(),
                 review.getOrderId(),
@@ -160,12 +166,4 @@ public class ReviewService {
         return normalized;
     }
 
-    private void refreshCreditScore(Long targetUserId) {
-        long reviewCount = reviewMapper.countReviewsForTarget(targetUserId);
-        BigDecimal averageRating = reviewMapper.averageRatingForTarget(targetUserId);
-        User user = new User();
-        user.setId(targetUserId);
-        user.setCreditScore(creditCalculator.calculateScore(averageRating, reviewCount));
-        userMapper.updateById(user);
-    }
 }
