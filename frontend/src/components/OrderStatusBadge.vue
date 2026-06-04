@@ -1,6 +1,6 @@
 <template>
   <span :class="['status-badge', tone]">
-    {{ orderStatusLabels[status] }}
+    {{ label ?? orderStatusLabels[status] }}
   </span>
 </template>
 
@@ -12,9 +12,14 @@ import type { OrderStatus } from '@/types'
 
 const props = defineProps<{
   status: OrderStatus
+  label?: string
+  toneOverride?: 'orange' | 'green' | 'blue' | 'red' | 'purple'
 }>()
 
 const tone = computed(() => {
+  if (props.toneOverride) {
+    return props.toneOverride
+  }
   switch (props.status) {
     case 'CONFIRMED':
       return 'green'

@@ -442,6 +442,17 @@
           AND team_current_members &lt; team_total_members
     </update>
 
+    <update id="decrementTeamCurrentMembers">
+        UPDATE t_task
+        SET team_current_members = team_current_members - 1,
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{taskId}
+          AND is_deleted = false
+          AND status = 2
+          AND team_current_members IS NOT NULL
+          AND team_current_members &gt; 0
+    </update>
+
     <select id="countPublishedByUser" resultType="long">
         SELECT COUNT(1)
         FROM t_task

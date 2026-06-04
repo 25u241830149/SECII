@@ -150,7 +150,8 @@
           </div>
           <div>
             <small>平均评分</small>
-            <strong><el-icon><StarFilled /></el-icon> 4.9</strong>
+            <strong v-if="averageRating !== null"><el-icon><StarFilled /></el-icon> {{ averageRating.toFixed(1) }}</strong>
+            <strong v-else class="empty-rating">暂无</strong>
           </div>
         </div>
       </section>
@@ -161,31 +162,31 @@
           <RouterLink to="/orders">查看全部 <el-icon><ArrowRight /></el-icon></RouterLink>
         </header>
         <div class="order-grid">
-          <div class="order-box cyan">
+          <button type="button" class="order-box cyan" @click="goOrders('OPEN')">
             <el-icon><Box /></el-icon>
             <span>待接单</span>
             <strong>{{ orderStats.waitingAcceptance }}</strong>
-          </div>
-          <div class="order-box blue">
+          </button>
+          <button type="button" class="order-box blue" @click="goOrders('PENDING')">
             <el-icon><Document /></el-icon>
             <span>待确认</span>
             <strong>{{ orderStats.pending }}</strong>
-          </div>
-          <div class="order-box green">
+          </button>
+          <button type="button" class="order-box green" @click="goOrders('CONFIRMED')">
             <el-icon><Promotion /></el-icon>
             <span>进行中</span>
             <strong>{{ orderStats.inProgress }}</strong>
-          </div>
-          <div class="order-box orange">
+          </button>
+          <button type="button" class="order-box orange" @click="goOrders('WAITING_REVIEW')">
             <el-icon><ChatDotRound /></el-icon>
             <span>待评价</span>
             <strong>{{ orderStats.waitingReview }}</strong>
-          </div>
-          <div class="order-box purple">
+          </button>
+          <button type="button" class="order-box purple" @click="goOrders('COMPLETED')">
             <el-icon><CircleCheck /></el-icon>
             <span>已完成</span>
             <strong>{{ orderStats.completed }}</strong>
-          </div>
+          </button>
         </div>
       </section>
 
@@ -301,6 +302,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { getOrders, getOrderStats, grabOrder } from '@/api/order'
 import { getMessages } from '@/api/message'
 import { getTasks } from '@/api/task'
+import { getUserHome } from '@/api/user'
 import { useAppStore, useAuthStore, useFeedStore } from '@/stores'
 import {
   getRecommendationHint,
@@ -322,9 +324,13 @@ import {
   type TaskCategory,
   type TaskListDTO,
   type TaskStatusFilter,
+  type UserHomeDTO,
 } from '@/types'
 
 const router = useRouter()
+const goOrders = (status?: string) => {
+  router.push({ path: '/orders', query: status ? { status } : {} })
+}
 const route = useRoute()
 const feedStore = useFeedStore()
 const appStore = useAppStore()
@@ -351,6 +357,7 @@ const recommendationTasks = ref<TaskListDTO[]>([])
 const recommendationProfile = ref<TaskViewProfileEntry[]>([])
 const recommendationOffset = ref(0)
 const notices = ref<MessageDTO[]>([])
+const userSummary = ref<UserHomeDTO | null>(null)
 
 const tabs: Array<{ label: string; value: SortType }> = [
   { label: '最新发布', value: 'time' },
@@ -383,15 +390,11 @@ const categoryMeta: Record<TaskCategory, {
 const displayName = computed(() => authStore.user?.nickname || '同学')
 const currentAvatar = computed(() => resolveAssetUrl(authStore.user?.avatarUrl || ''))
 const avatarFallback = computed(() => displayName.value.slice(0, 1).toUpperCase())
-const creditScore = computed(() => authStore.user?.creditScore ?? 96)
-const creditLevel = computed(() => {
-  const score = creditScore.value
-  if (score >= 95) return '优秀'
-  if (score >= 85) return '良好'
-  return '成长中'
-})
+const creditScore = computed(() => userSummary.value?.creditScore ?? authStore.user?.creditScore ?? 90)
+const creditLevel = computed(() => userSummary.value?.creditLevel || '普通用户')
 
-const completedOrderCount = computed(() => orderStats.value.completed)
+const completedOrderCount = computed(() => userSummary.value?.completedOrderCount ?? orderStats.value.completed)
+const averageRating = computed(() => userSummary.value?.averageRating ?? null)
 const recommendationHint = computed(() => getRecommendationHint(recommendationProfile.value))
 
 const recommendedTasks = computed(() => {
@@ -512,7 +515,6 @@ const handleGrab = async (task: TaskListDTO) => {
   await feedStore.fetchStats()
   await loadRecommendations()
   await loadOrders()
-  router.push('/orders')
 }
 
 const scrollToTasks = async () => {
@@ -617,6 +619,20 @@ const loadOrders = async () => {
   }
 }
 
+const loadUserSummary = async () => {
+  const userId = authStore.user?.userId
+  if (!authStore.isAuthenticated || !userId) {
+    userSummary.value = null
+    return
+  }
+
+  try {
+    userSummary.value = await getUserHome(userId)
+  } catch {
+    userSummary.value = null
+  }
+}
+
 const refreshSmartRecommendations = (resetOffset = true) => {
   recommendationProfile.value = readTaskViewProfile(authStore.user?.userId)
   recommendationTasks.value = rankSmartTaskRecommendations(
@@ -697,6 +713,7 @@ watch(
   () => authStore.user?.userId,
   () => {
     loadOrders()
+    loadUserSummary()
     loadRecommendations()
     loadLatestMessages()
   },
@@ -705,6 +722,7 @@ watch(
 onMounted(() => {
   window.addEventListener('campushub:message-unread-updated', handleMessageUnreadUpdated)
   loadOrders()
+  loadUserSummary()
   loadRecommendations()
   loadLatestMessages()
   feedStore.fetchStats()
@@ -1270,13 +1288,17 @@ onBeforeUnmount(() => {
 }
 
 .order-box {
+  appearance: none;
   display: grid;
   grid-template-rows: auto auto auto;
   min-height: 88px;
   align-content: center;
   justify-items: center;
   padding: 11px 6px 10px;
+  border: 0;
   border-radius: 12px;
+  cursor: pointer;
+  font: inherit;
   text-align: center;
 }
 
@@ -1375,6 +1397,9 @@ onBeforeUnmount(() => {
   height: 32px;
   place-items: center;
   border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
   background: #eef5ff;
   color: #1677ff;
   font-size: 18px;

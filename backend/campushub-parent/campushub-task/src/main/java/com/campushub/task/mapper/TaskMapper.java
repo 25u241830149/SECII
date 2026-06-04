@@ -68,6 +68,8 @@ public interface TaskMapper {
 
     int incrementTeamCurrentMembers(@Param("taskId") Long taskId);
 
+    int decrementTeamCurrentMembers(@Param("taskId") Long taskId);
+
     long countPublishedByUser(@Param("userId") Long userId);
 
     TaskStatsDTO selectTaskStats();

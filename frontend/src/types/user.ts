@@ -77,6 +77,15 @@ export interface UserHomeDTO {
   publishedTaskCount: number
   completedOrderCount: number
   reviewCount: number
+  averageRating: number | null
+}
+
+export interface CreditRecordDTO {
+  recordId: EntityId
+  reason: string
+  delta: number
+  scoreAfter: number
+  createdAt: string
 }
 
 export interface CreditDTO {
@@ -84,6 +93,12 @@ export interface CreditDTO {
   creditLevel: string
   completedRate: number
   cancelledRate: number
+  averageRating: number | null
+  reviewCount: number
+  publishedTaskCount: number
+  completedOrderCount: number
+  cancelledOrderCount: number
+  recentRecords: CreditRecordDTO[]
 }
 
 export interface VerificationSubmitRequest {

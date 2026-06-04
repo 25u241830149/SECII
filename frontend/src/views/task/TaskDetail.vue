@@ -10,8 +10,8 @@
               <p>{{ task.description }}</p>
             </div>
             <div class="reward-box">
+              <small :class="['task-status-pill', task.status.toLowerCase()]">{{ taskStatusLabels[task.status] }}</small>
               <strong>¥{{ Number(task.reward).toFixed(2) }}</strong>
-              <small>{{ taskStatusLabels[task.status] }}</small>
             </div>
           </div>
 
@@ -72,7 +72,7 @@
           </section>
 
           <footer class="actions">
-            <el-button @click="router.back()">返回</el-button>
+            <el-button @click="goBack">返回</el-button>
             <el-button @click="toggleFavorite">
               {{ task.favorited ? '取消收藏' : '收藏任务' }}
             </el-button>
@@ -84,6 +84,7 @@
             </el-button>
           </footer>
         </article>
+        <TaskCommentSection v-if="task" :task-id="task.taskId" />
       </template>
     </el-skeleton>
   </section>
@@ -101,6 +102,7 @@ import { taskCategoryLabels, taskStatusLabels } from '@/types'
 import { rememberTaskView } from '@/utils/taskRecommendation'
 import { resolveAssetUrl } from '@/utils/asset'
 import type { TaskDetailDTO } from '@/types'
+import TaskCommentSection from '@/components/TaskCommentSection.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -167,6 +169,25 @@ const handleGrab = async () => {
   router.push('/orders')
 }
 
+const goBack = () => {
+  if (!route.query.fromRole && !route.query.fromStatus && !route.query.fromPage) {
+    router.back()
+    return
+  }
+
+  const fromRole = route.query.fromRole === 'accepted' ? 'accepted' : 'published'
+  const fromStatus = typeof route.query.fromStatus === 'string' ? route.query.fromStatus : 'ALL'
+  const fromPage = typeof route.query.fromPage === 'string' ? route.query.fromPage : '1'
+  router.push({
+    path: '/orders',
+    query: {
+      role: fromRole,
+      status: fromStatus,
+      page: fromPage,
+    },
+  })
+}
+
 const handleCancelTask = async () => {
   if (!task.value || !ensureAuthenticated()) return
   cancelling.value = true
@@ -196,6 +217,26 @@ onMounted(loadTask)
 <style scoped>
 .detail-page {
   display: grid;
+  height: calc(100vh - 122px);
+  gap: 18px;
+  min-height: 0;
+  align-content: start;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+
+.detail-page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.detail-page::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.detail-page::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .detail-card {
@@ -234,30 +275,61 @@ onMounted(loadTask)
 
 .headline p,
 .location-box p,
-.meta-grid small,
-.reward-box small {
+.meta-grid small {
   color: #64748b;
 }
 
 .reward-box {
-  padding: 18px;
-  border-radius: 20px;
-  background: linear-gradient(145deg, #fff7ed, #fff);
-  text-align: center;
-}
-
-.reward-box strong,
-.reward-box small {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  align-items: flex-end;
+  gap: 12px;
+  padding-top: 6px;
+  text-align: right;
 }
 
 .reward-box strong {
   color: #ea580c;
   font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  text-align: right;
 }
 
-.reward-box small {
-  margin-top: 8px;
+.task-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e8f8ee;
+  color: #119468;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.task-status-pill.pending_confirm {
+  background: #fff5e7;
+  color: #f59e0b;
+}
+
+.task-status-pill.in_progress {
+  background: #eef5ff;
+  color: #1268ed;
+}
+
+.task-status-pill.completed {
+  background: #f3efff;
+  color: #7c3aed;
+}
+
+.task-status-pill.cancelled,
+.task-status-pill.offline {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 .meta-grid {
@@ -332,6 +404,14 @@ onMounted(loadTask)
   .actions {
     flex-wrap: wrap;
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 1180px) {
+  .detail-page {
+    height: auto;
+    overflow: visible;
+    padding-right: 0;
   }
 }
 </style>

@@ -11,6 +11,8 @@ public interface OrderMapper {
 
     int insertOrder(Order order);
 
+    long countOrdersByTaskAndHelper(@Param("taskId") Long taskId, @Param("helperId") Long helperId);
+
     Order selectOrderById(@Param("orderId") Long orderId);
 
     List<Order> selectActiveOrdersByTask(@Param("taskId") Long taskId);

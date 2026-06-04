@@ -12,6 +12,7 @@ import com.campushub.user.dto.UserProfileUpdateRequest;
 import com.campushub.user.dto.UserPublicDTO;
 import com.campushub.user.entity.User;
 import com.campushub.user.entity.UserVerification;
+import com.campushub.user.mapper.CreditMapper;
 import com.campushub.user.mapper.UserMapper;
 import com.campushub.user.mapper.UserVerificationMapper;
 import java.net.URI;
@@ -32,10 +33,12 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final UserVerificationMapper verificationMapper;
+    private final CreditMapper creditMapper;
 
-    public UserService(UserMapper userMapper, UserVerificationMapper verificationMapper) {
+    public UserService(UserMapper userMapper, UserVerificationMapper verificationMapper, CreditMapper creditMapper) {
         this.userMapper = userMapper;
         this.verificationMapper = verificationMapper;
+        this.creditMapper = creditMapper;
     }
 
     public UserProfileDTO getProfile(Long userId) {
@@ -51,17 +54,16 @@ public class UserService {
     public UserHomeDTO getHome(Long userId) {
         User user = requireActiveUser(userId);
         int creditScore = user.getCreditScore() == null ? 0 : user.getCreditScore();
-        // TODO(order/review/task): replace Sprint 1 placeholders with aggregate counts
-        // from published tasks, completed orders, and received reviews.
         return new UserHomeDTO(
                 user.getId(),
                 user.getNickname(),
                 user.getAvatarUrl(),
                 creditScore,
                 CreditService.creditLevel(creditScore),
-                0,
-                0,
-                0
+                Math.toIntExact(creditMapper.countPublishedTasks(userId)),
+                Math.toIntExact(creditMapper.countCompletedOrdersByUser(userId)),
+                Math.toIntExact(creditMapper.countReceivedReviews(userId)),
+                creditMapper.averageReceivedRating(userId)
         );
     }
 

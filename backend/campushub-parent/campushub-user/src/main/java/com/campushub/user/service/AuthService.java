@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class AuthService {
 
     private static final int ROLE_USER = 0;
-    private static final int DEFAULT_CREDIT_SCORE = 100;
+    private static final int DEFAULT_CREDIT_SCORE = 90;
     private static final int MIN_PASSWORD_LENGTH = 6;
     private static final int USER_STATUS_PENDING_VERIFICATION = 1;
     private static final int USER_STATUS_BANNED = 2;

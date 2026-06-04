@@ -46,6 +46,16 @@ export interface TaskListQuery extends PageQuery {
   excludeCompleted?: boolean
 }
 
+export interface TaskCommentDTO {
+  commentId: EntityId
+  taskId: EntityId
+  authorId: EntityId
+  authorName: string
+  authorAvatarUrl?: string | null
+  content: string
+  createdAt: string
+}
+
 export interface TaskStatsDTO {
   todayCreated: number
   inProgress: number
