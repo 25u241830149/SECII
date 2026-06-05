@@ -235,7 +235,9 @@
             <p v-for="slot in noticeSlots" :key="slot.key" class="notice-item">
               <template v-if="slot.notice">
                 <span :class="['notice-dot', { unread: !slot.notice.read }]"></span>
-                <span>{{ slot.notice.title || slot.notice.content || '无标题消息' }}</span>
+                <span class="notice-text" :title="slot.notice.title || slot.notice.content || '无标题消息'">
+                  {{ slot.notice.title || slot.notice.content || '无标题消息' }}
+                </span>
                 <small>{{ formatRelativeTime(slot.notice.createdAt) }}</small>
               </template>
               <template v-else>
@@ -387,13 +389,13 @@ const categoryMeta: Record<TaskCategory, {
   OTHER: { icon: MoreFilled, tone: 'other' },
 }
 
-const displayName = computed(() => authStore.user?.nickname || '同学')
-const currentAvatar = computed(() => resolveAssetUrl(authStore.user?.avatarUrl || ''))
+const displayName = computed(() => userSummary.value?.nickname || authStore.user?.nickname || '同学')
+const currentAvatar = computed(() => resolveAssetUrl(userSummary.value?.avatarUrl || authStore.user?.avatarUrl || ''))
 const avatarFallback = computed(() => displayName.value.slice(0, 1).toUpperCase())
 const creditScore = computed(() => userSummary.value?.creditScore ?? authStore.user?.creditScore ?? 90)
 const creditLevel = computed(() => userSummary.value?.creditLevel || '普通用户')
 
-const completedOrderCount = computed(() => userSummary.value?.completedOrderCount ?? orderStats.value.completed)
+const completedOrderCount = computed(() => orderStats.value.completed)
 const averageRating = computed(() => userSummary.value?.averageRating ?? null)
 const recommendationHint = computed(() => getRecommendationHint(recommendationProfile.value))
 
@@ -1457,9 +1459,17 @@ onBeforeUnmount(() => {
   grid-template-columns: 10px minmax(0, 1fr) 68px;
   gap: 10px;
   align-items: center;
+  min-width: 0;
   margin: 0;
   color: #4b5563;
   font-size: 13px;
+}
+
+.notice-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notice-dot {
@@ -1479,7 +1489,10 @@ onBeforeUnmount(() => {
 
 .notice-item small {
   color: #8b95a5;
+  overflow: hidden;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notice-placeholder-text {

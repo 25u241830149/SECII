@@ -64,4 +64,29 @@
               AND is_deleted = false
         ) THEN 1 ELSE 0 END
     </select>
+
+    <select id="selectAdminUserOptions" resultType="com.campushub.user.dto.AdminUserOptionDTO">
+        SELECT
+            id AS userId,
+            student_id AS studentId,
+            COALESCE(nickname, student_id) AS nickname,
+            CASE role WHEN 1 THEN 'ADMIN' ELSE 'USER' END AS role,
+            CASE status WHEN 2 THEN 'BANNED' WHEN 1 THEN 'PENDING_VERIFICATION' ELSE 'NORMAL' END AS status,
+            credit_score AS creditScore
+        FROM u_user
+        WHERE is_deleted = false
+          <if test="role != null">
+            AND role = #{role}
+          </if>
+          <if test="keyword != null and keyword != ''">
+            AND (
+              CAST(id AS TEXT) = #{keyword}
+              OR student_id ILIKE CONCAT('%', #{keyword}, '%')
+              OR nickname ILIKE CONCAT('%', #{keyword}, '%')
+              OR real_name ILIKE CONCAT('%', #{keyword}, '%')
+            )
+          </if>
+        ORDER BY role DESC, update_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
 </mapper>

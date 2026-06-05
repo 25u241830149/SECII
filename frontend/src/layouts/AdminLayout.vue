@@ -3,11 +3,11 @@
     <aside class="admin-sidebar">
       <RouterLink class="admin-brand" to="/">
         <CampusHubLogo size="sm" />
-        <strong>CampusHub Admin</strong>
+        <strong>Admin</strong>
       </RouterLink>
 
       <nav>
-        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to">
+        <RouterLink v-for="item in navItems" :key="item.to" :to="item.to" :class="{ active: isNavActive(item.to) }">
           {{ item.label }}
         </RouterLink>
       </nav>
@@ -25,7 +25,9 @@
         </div>
       </header>
 
-      <RouterView />
+      <div class="admin-content">
+        <RouterView />
+      </div>
     </section>
   </div>
 </template>
@@ -50,6 +52,8 @@ const navItems = [
   { to: '/admin/notices', label: '公告管理' },
 ]
 
+const isNavActive = (path: string) => (path === '/admin' ? route.path === '/admin' : route.path.startsWith(path))
+
 const handleLogout = () => {
   userStore.setProfile(null)
   authStore.logout()
@@ -61,15 +65,18 @@ const handleLogout = () => {
 <style scoped>
 .admin-layout {
   display: grid;
-  min-height: 100vh;
+  height: 100vh;
   grid-template-columns: 248px minmax(0, 1fr);
   background: #f5f7fb;
+  overflow: hidden;
 }
 
 .admin-sidebar {
+  min-height: 0;
   padding: 22px;
   border-right: 1px solid #e3e9f3;
   background: #fff;
+  overflow-y: auto;
 }
 
 .admin-brand {
@@ -93,18 +100,24 @@ nav a {
   text-decoration: none;
 }
 
-nav a.router-link-active {
+nav a.active {
   background: #eef5ff;
   color: #1268ed;
   font-weight: 700;
 }
 
 .admin-main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   min-width: 0;
+  min-height: 0;
   padding: 26px;
+  overflow: hidden;
 }
 
 .admin-header {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -113,6 +126,13 @@ nav a.router-link-active {
   border: 1px solid #e7edf7;
   border-radius: 8px;
   background: #fff;
+}
+
+.admin-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .admin-header p,
@@ -154,12 +174,26 @@ nav a.router-link-active {
 
 @media (max-width: 840px) {
   .admin-layout {
+    height: auto;
+    min-height: 100vh;
     grid-template-columns: 1fr;
+    overflow: visible;
   }
 
   .admin-sidebar {
     border-right: 0;
     border-bottom: 1px solid #e3e9f3;
+    overflow: visible;
+  }
+
+  .admin-main {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .admin-content {
+    overflow: visible;
   }
 }
 </style>

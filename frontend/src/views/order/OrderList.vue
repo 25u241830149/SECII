@@ -271,8 +271,7 @@ const loadPublishedItems = async () => {
 
   if (
     activeStatus.value === 'PENDING' ||
-    activeStatus.value === 'WAITING_REVIEW' ||
-    activeStatus.value === 'COMPLETED'
+    activeStatus.value === 'WAITING_REVIEW'
   ) {
     return loadOrderItems('poster', orderStatusByFilter[activeStatus.value])
   }

@@ -1,7 +1,9 @@
 package com.campushub.user.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.campushub.user.dto.AdminUserOptionDTO;
 import com.campushub.user.entity.User;
+import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -13,6 +15,12 @@ public interface UserMapper extends BaseMapper<User> {
     User selectActiveByStudentId(@Param("studentId") String studentId);
 
     int existsByStudentId(@Param("studentId") String studentId);
+
+    List<AdminUserOptionDTO> selectAdminUserOptions(
+            @Param("keyword") String keyword,
+            @Param("role") Integer role,
+            @Param("limit") int limit
+    );
 
     @Update("""
             UPDATE u_user

@@ -9,6 +9,13 @@ public interface MessageMapper {
 
     int insertMessage(Message message);
 
+    int insertMessagesForActiveUsers(
+            @Param("type") Integer type,
+            @Param("title") String title,
+            @Param("content") String content,
+            @Param("excludeUserId") Long excludeUserId
+    );
+
     List<MessageDTO> selectMessages(
             @Param("receiverId") Long receiverId,
             @Param("type") Integer type,

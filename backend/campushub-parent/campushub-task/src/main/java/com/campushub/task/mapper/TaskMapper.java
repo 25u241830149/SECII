@@ -13,6 +13,8 @@ public interface TaskMapper {
 
     int updateTask(Task task);
 
+    int softDeleteOrdersByTask(@Param("taskId") Long taskId);
+
     Task selectTaskById(@Param("taskId") Long taskId);
 
     Task selectTaskByIdAndPublisher(@Param("taskId") Long taskId, @Param("publisherId") Long publisherId);

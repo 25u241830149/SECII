@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,8 +26,11 @@ public class TaskCommentController {
     }
 
     @GetMapping
-    public ApiResponse<List<TaskCommentDTO>> list(@PathVariable Long taskId) {
-        return ApiResponse.success(taskCommentService.list(taskId));
+    public ApiResponse<List<TaskCommentDTO>> list(
+            @PathVariable Long taskId,
+            @RequestParam(defaultValue = "time") String sort
+    ) {
+        return ApiResponse.success(taskCommentService.list(taskId, SecurityUtils.getCurrentUserId().orElse(null), sort));
     }
 
     @PostMapping
@@ -41,6 +45,18 @@ public class TaskCommentController {
     @DeleteMapping("/{commentId}")
     public ApiResponse<Void> delete(@PathVariable Long taskId, @PathVariable Long commentId) {
         taskCommentService.delete(taskId, commentId, SecurityUtils.getRequiredCurrentUserId());
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/{commentId}/like")
+    public ApiResponse<Void> like(@PathVariable Long taskId, @PathVariable Long commentId) {
+        taskCommentService.like(taskId, commentId, SecurityUtils.getRequiredCurrentUserId());
+        return ApiResponse.success();
+    }
+
+    @DeleteMapping("/{commentId}/like")
+    public ApiResponse<Void> unlike(@PathVariable Long taskId, @PathVariable Long commentId) {
+        taskCommentService.unlike(taskId, commentId, SecurityUtils.getRequiredCurrentUserId());
         return ApiResponse.success();
     }
 }

@@ -1,4 +1,4 @@
-import { apiDelete, apiPost } from './request'
+import { apiDelete, apiGet, apiPost } from './request'
 import { getDashboardStats, getAdminReports, handleReport } from './report'
 import {
   createNotice,
@@ -30,6 +30,21 @@ export interface AdminVerifyResultDTO {
   userId: EntityId
   verificationStatus: string
   remark?: string
+}
+
+export type AdminUserRole = 'ALL' | 'USER' | 'ADMIN'
+
+export interface AdminUserOptionDTO {
+  userId: EntityId
+  studentId: string
+  nickname: string
+  role: 'USER' | 'ADMIN'
+  status: 'NORMAL' | 'PENDING_VERIFICATION' | 'BANNED'
+  creditScore: number
+}
+
+export function searchAdminUsers(params: { keyword?: string; role?: AdminUserRole; size?: number } = {}) {
+  return apiGet<AdminUserOptionDTO[]>('/admin/users', { params })
 }
 
 export function banUser(userId: EntityId, payload: AdminBanRequest) {

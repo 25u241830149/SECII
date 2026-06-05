@@ -28,6 +28,28 @@
         )
     </insert>
 
+    <insert id="insertMessagesForActiveUsers">
+        INSERT INTO t_message (
+            receiver_id,
+            type,
+            title,
+            content,
+            is_read
+        )
+        SELECT
+            id,
+            #{type},
+            #{title},
+            #{content},
+            false
+        FROM u_user
+        WHERE is_deleted = false
+          AND status != 2
+          <if test="excludeUserId != null">
+            AND id != #{excludeUserId}
+          </if>
+    </insert>
+
     <select id="selectMessages" resultType="com.campushub.message.dto.MessageDTO">
         SELECT
             id AS messageId,

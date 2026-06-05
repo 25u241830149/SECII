@@ -78,6 +78,16 @@ public class MessageService {
     }
 
     @Transactional
+    public void notifyActiveUsers(int type, String title, String content, Long excludeUserId) {
+        if (title == null || title.isBlank()) {
+            return;
+        }
+        String normalizedTitle = trimToLength(title, MAX_TITLE_LENGTH);
+        String normalizedContent = content == null || content.isBlank() ? null : content.trim();
+        messageMapper.insertMessagesForActiveUsers(type, normalizedTitle, normalizedContent, excludeUserId);
+    }
+
+    @Transactional
     public void notifyIfDifferent(Long receiverId, Long actorId, int type, String title, String content) {
         if (!Objects.equals(receiverId, actorId)) {
             notifyUser(receiverId, type, title, content);

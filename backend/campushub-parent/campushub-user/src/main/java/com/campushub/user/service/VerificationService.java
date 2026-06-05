@@ -1,6 +1,7 @@
 package com.campushub.user.service;
 
 import com.campushub.common.constant.ErrorCode;
+import com.campushub.common.event.VerificationReviewedEvent;
 import com.campushub.common.exception.BusinessException;
 import com.campushub.user.dto.AdminVerifyRequest;
 import com.campushub.user.dto.AdminVerifyResultDTO;
@@ -10,6 +11,7 @@ import com.campushub.user.entity.User;
 import com.campushub.user.entity.UserVerification;
 import com.campushub.user.mapper.UserMapper;
 import com.campushub.user.mapper.UserVerificationMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,16 +20,23 @@ public class VerificationService {
 
     private static final int USER_STATUS_PENDING_VERIFICATION = 1;
     private static final int USER_STATUS_NORMAL = 0;
+    private static final int USER_STATUS_BANNED = 2;
     private static final int VERIFICATION_PENDING = 0;
     private static final int VERIFICATION_APPROVED = 1;
     private static final int VERIFICATION_REJECTED = 2;
 
     private final UserMapper userMapper;
     private final UserVerificationMapper verificationMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public VerificationService(UserMapper userMapper, UserVerificationMapper verificationMapper) {
+    public VerificationService(
+            UserMapper userMapper,
+            UserVerificationMapper verificationMapper,
+            ApplicationEventPublisher applicationEventPublisher
+    ) {
         this.userMapper = userMapper;
         this.verificationMapper = verificationMapper;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional
@@ -52,7 +61,9 @@ public class VerificationService {
         update.setId(request.userId());
         update.setRealName(request.realName());
         update.setDepartment(request.college());
-        update.setStatus(USER_STATUS_PENDING_VERIFICATION);
+        if (!Integer.valueOf(USER_STATUS_BANNED).equals(user.getStatus())) {
+            update.setStatus(USER_STATUS_PENDING_VERIFICATION);
+        }
         userMapper.updateById(update);
 
         // TODO(message): notify admins through NotificationGateway after the
@@ -78,14 +89,19 @@ public class VerificationService {
         updateVerification.setRejectReason(approved ? null : request.remark());
         verificationMapper.updateById(updateVerification);
 
-        User updateUser = new User();
-        updateUser.setId(userId);
-        updateUser.setStatus(approved ? USER_STATUS_NORMAL : USER_STATUS_PENDING_VERIFICATION);
-        userMapper.updateById(updateUser);
+        User user = userMapper.selectById(userId);
+        if (user == null || Boolean.TRUE.equals(user.getIsDeleted())) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
+        }
+        if (!Integer.valueOf(USER_STATUS_BANNED).equals(user.getStatus())) {
+            User updateUser = new User();
+            updateUser.setId(userId);
+            updateUser.setStatus(approved ? USER_STATUS_NORMAL : USER_STATUS_PENDING_VERIFICATION);
+            userMapper.updateById(updateUser);
+        }
 
         String status = approved ? "APPROVED" : "REJECTED";
-        // TODO(message): notify the user of approval/rejection once real-time
-        // or persistent notification infrastructure is connected.
+        applicationEventPublisher.publishEvent(new VerificationReviewedEvent(userId, approved, request.remark()));
         return new AdminVerifyResultDTO(userId, status, request.remark());
     }
 
