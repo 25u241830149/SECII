@@ -1,0 +1,28 @@
+spring:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:sql/grab-service-test-schema.sql
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.campushub.**.entity
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: true
+      logic-not-delete-value: false
+
+campushub:
+  jwt:
+    secret: campushub-test-secret-change-me-please-32-bytes
+    access-token-ttl: 2h
+    refresh-token-ttl: 7d
+    issuer: campushub
+    header-name: Authorization
+    token-prefix: "Bearer "
+  audit:
+    sensitive-word:
+      enabled: false

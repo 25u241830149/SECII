@@ -23,8 +23,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String location = uploadBasePath.toUri().toString();
+        // 确保目录路径以 "/" 结尾，否则 Spring URI.resolve() 会丢失最后一级目录
+        if (!location.endsWith("/")) {
+            location += "/";
+        }
         registry.addResourceHandler(publicPrefix + "/**")
-                .addResourceLocations(uploadBasePath.toUri().toString());
+                .addResourceLocations(location);
     }
 
     private static String normalizePublicPrefix(String value) {

@@ -28,6 +28,11 @@
         </dependency>
         <dependency>
             <groupId>com.campushub</groupId>
+            <artifactId>campushub-task</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.campushub</groupId>
             <artifactId>campushub-user</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -39,6 +44,14 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.campushub</groupId>
+            <artifactId>campushub-common</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

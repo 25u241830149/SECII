@@ -1,21 +1,45 @@
-# workflow:
-#   rules:
-#     - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
 
-# stages:
-#   - build
-#   - test
+stages:
+  - install
+  - quality
+  - build
 
-# frontend_build:
-#   stage: build
-#   script:
-#     - cd frontend
-#     - npm ci
-#     - npm run build
+variables:
+  FRONTEND_DIR: "frontend"
 
-# frontend_test:
-#   stage: test
-#   script:
-#     - cd frontend
-#     - npm ci
-#     - npm test
+cache:
+  key:
+    files:
+      - frontend/package-lock.json
+  paths:
+    - frontend/.npm/
+
+frontend_install_dependencies:
+  stage: install
+  image: node:22-alpine
+  script:
+    - cd "$FRONTEND_DIR"
+    - npm ci --cache .npm --prefer-offline
+
+frontend_type_check:
+  stage: quality
+  image: node:22-alpine
+  script:
+    - cd "$FRONTEND_DIR"
+    - npm ci --cache .npm --prefer-offline
+    - npm exec vue-tsc -- --noEmit
+
+frontend_build:
+  stage: build
+  image: node:22-alpine
+  script:
+    - cd "$FRONTEND_DIR"
+    - npm ci --cache .npm --prefer-offline
+    - npm run build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 week

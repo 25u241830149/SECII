@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${CAMPUSHUB_TEST_DATASOURCE_URL:jdbc:postgresql://postgres:5432/secii_order_test}
+    username: ${CAMPUSHUB_TEST_DATASOURCE_USERNAME:postgres}
+    password: ${CAMPUSHUB_TEST_DATASOURCE_PASSWORD:postgres}
+  data:
+    redis:
+      host: ${CAMPUSHUB_TEST_REDIS_HOST:redis}
+      port: ${CAMPUSHUB_TEST_REDIS_PORT:6379}
+      database: ${CAMPUSHUB_TEST_REDIS_DATABASE:0}
+      password: ${CAMPUSHUB_TEST_REDIS_PASSWORD:}
+      timeout: 3s
+
+campushub:
+  redisson:
+    address: ${CAMPUSHUB_TEST_REDISSON_ADDRESS:redis://redis:6379}
+    password: ${CAMPUSHUB_TEST_REDIS_PASSWORD:}
+    database: ${CAMPUSHUB_TEST_REDIS_DATABASE:0}

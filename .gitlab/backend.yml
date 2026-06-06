@@ -1,10 +1,77 @@
-# # 配置仅供参考！
-# stages:
-#   - build
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "parent_pipeline"'
 
-# backend-build:
-#   stage: build
-#   image: maven:3.9.9-eclipse-temurin-17
-#   script:
-#     - cd backend
-#     - mvn clean package -DskipTests
+stages:
+  - install
+  - quality
+  - unit_test
+  - integration_test
+  - build
+
+variables:
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+  MAVEN_REPO_LOCAL: ".m2/repository"
+  BACKEND_DIR: "backend/campushub-parent"
+
+cache:
+  key: "backend-maven"
+  paths:
+    - .m2/repository/
+
+backend_install_dependencies:
+  stage: install
+  image: maven:3.9.9-eclipse-temurin-17
+  script:
+    - mvn $MAVEN_CLI_OPTS "-Dmaven.repo.local=$MAVEN_REPO_LOCAL" -f "$BACKEND_DIR/pom.xml" dependency:go-offline
+
+backend_static_check:
+  stage: quality
+  image: maven:3.9.9-eclipse-temurin-17
+  script:
+    - mvn $MAVEN_CLI_OPTS "-Dmaven.repo.local=$MAVEN_REPO_LOCAL" -f "$BACKEND_DIR/pom.xml" -DskipTests compile
+
+backend_unit_test:
+  stage: unit_test
+  image: maven:3.9.9-eclipse-temurin-17
+  script:
+    - mvn $MAVEN_CLI_OPTS "-Dmaven.repo.local=$MAVEN_REPO_LOCAL" -f "$BACKEND_DIR/pom.xml" "-Dtest=!*IntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false" test
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - backend/campushub-parent/**/target/surefire-reports/TEST-*.xml
+    paths:
+      - backend/campushub-parent/**/target/surefire-reports/
+    expire_in: 1 week
+
+backend_integration_test:
+  stage: integration_test
+  image: maven:3.9.9-eclipse-temurin-17
+  services:
+    - name: docker:27-dind
+      alias: docker
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
+    TESTCONTAINERS_RYUK_DISABLED: "true"
+  script:
+    - mvn $MAVEN_CLI_OPTS "-Dmaven.repo.local=$MAVEN_REPO_LOCAL" -f "$BACKEND_DIR/pom.xml" "-Dtest=*IntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false" test
+  artifacts:
+    when: always
+    reports:
+      junit:
+        - backend/campushub-parent/**/target/surefire-reports/TEST-*.xml
+    paths:
+      - backend/campushub-parent/**/target/surefire-reports/
+    expire_in: 1 week
+
+backend_build:
+  stage: build
+  image: maven:3.9.9-eclipse-temurin-17
+  script:
+    - mvn $MAVEN_CLI_OPTS "-Dmaven.repo.local=$MAVEN_REPO_LOCAL" -f "$BACKEND_DIR/pom.xml" -DskipTests package
+  artifacts:
+    paths:
+      - backend/campushub-parent/**/target/*.jar
+    expire_in: 1 week
