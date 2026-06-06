@@ -58,9 +58,11 @@ class JwtTokenProviderTest {
     void validateTokenReturnsFalseForTamperedToken() {
         String token = tokenProvider.generateAccessToken(7L, "alice", UserRole.USER);
 
-        // Tamper with token: change last character
-        String tampered = token.substring(0, token.length() - 1)
-                + (token.charAt(token.length() - 1) == 'A' ? 'B' : 'A');
+        String[] parts = token.split("\\.");
+        String payload = parts[1];
+        String tamperedPayload = payload.substring(0, payload.length() - 1)
+                + (payload.charAt(payload.length() - 1) == 'A' ? 'B' : 'A');
+        String tampered = parts[0] + "." + tamperedPayload + "." + parts[2];
 
         assertFalse(tokenProvider.validateToken(tampered));
     }

@@ -187,9 +187,14 @@ public class UserService {
 
     @Transactional
     public void deleteAccount(Long userId) {
-        requireActiveUser(userId);
+        User user = requireActiveUser(userId);
         // TODO(order): reject deletion when the user still has unfinished orders,
         // matching the API contract's 422 account-cancellation rule.
+        User releaseStudentId = new User();
+        releaseStudentId.setId(userId);
+        releaseStudentId.setStudentId(deletedStudentId(user.getId()));
+        userMapper.updateById(releaseStudentId);
+
         int deleted = userMapper.deleteById(userId);
         if (deleted == 0) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
@@ -243,5 +248,9 @@ public class UserService {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private static String deletedStudentId(Long userId) {
+        return "__deleted_" + userId;
     }
 }

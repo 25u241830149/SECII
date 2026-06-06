@@ -20,7 +20,7 @@ class UserMapperXmlContractTest {
         assertTrue(xml.contains("id=\"selectactivebyid\""));
         assertTrue(xml.contains("id=\"selectactivebystudentid\""));
         assertTrue(xml.contains("id=\"existsbystudentid\""));
-        assertEquals(3, countOccurrences(xml, "is_deleted = false"));
+        assertEquals(4, countOccurrences(xml, "is_deleted = false"));
     }
 
     @Test

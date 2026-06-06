@@ -15,6 +15,7 @@ import com.campushub.user.entity.User;
 import com.campushub.user.entity.UserVerification;
 import com.campushub.user.mapper.UserMapper;
 import com.campushub.user.mapper.UserVerificationMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -30,6 +31,9 @@ class VerificationServiceTest {
 
     @Mock
     private UserVerificationMapper verificationMapper;
+
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private VerificationService verificationService;
@@ -91,7 +95,11 @@ class VerificationServiceTest {
         UserVerification verification = new UserVerification();
         verification.setId(11L);
         verification.setUserId(7L);
+        User user = new User();
+        user.setId(7L);
+        user.setStatus(1);
         when(verificationMapper.selectLatestByUserId(7L)).thenReturn(verification);
+        when(userMapper.selectById(7L)).thenReturn(user);
 
         AdminVerifyResultDTO result = verificationService.review(
                 7L,
@@ -115,7 +123,11 @@ class VerificationServiceTest {
         UserVerification verification = new UserVerification();
         verification.setId(11L);
         verification.setUserId(7L);
+        User user = new User();
+        user.setId(7L);
+        user.setStatus(1);
         when(verificationMapper.selectLatestByUserId(7L)).thenReturn(verification);
+        when(userMapper.selectById(7L)).thenReturn(user);
 
         AdminVerifyResultDTO result = verificationService.review(
                 7L,

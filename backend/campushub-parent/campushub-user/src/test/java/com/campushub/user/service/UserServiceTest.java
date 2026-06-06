@@ -137,6 +137,10 @@ class UserServiceTest {
 
         userService.deleteAccount(7L);
 
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userMapper).updateById(userCaptor.capture());
+        assertEquals(7L, userCaptor.getValue().getId());
+        assertEquals("__deleted_7", userCaptor.getValue().getStudentId());
         verify(userMapper).deleteById(7L);
     }
 
