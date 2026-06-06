@@ -8,7 +8,12 @@ public record TaskCommentDTO(
         Long authorId,
         String authorName,
         String authorAvatarUrl,
+        Long parentCommentId,
+        Long replyToUserId,
+        String replyToUserName,
         String content,
+        Integer likeCount,
+        Boolean likedByMe,
         OffsetDateTime createdAt
 ) {
 }

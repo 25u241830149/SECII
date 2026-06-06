@@ -10,6 +10,7 @@ import com.campushub.task.dto.TaskUpdateRequest;
 import com.campushub.task.entity.Task;
 import com.campushub.task.event.TaskCancelledEvent;
 import com.campushub.task.mapper.TaskMapper;
+import com.campushub.user.service.UserService;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import org.springframework.context.ApplicationEventPublisher;
@@ -28,21 +29,25 @@ public class TaskService {
     private final TaskQueryService taskQueryService;
     private final SensitiveWordFilter sensitiveWordFilter;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final UserService userService;
 
     public TaskService(
             TaskMapper taskMapper,
             TaskQueryService taskQueryService,
             SensitiveWordFilter sensitiveWordFilter,
-            ApplicationEventPublisher applicationEventPublisher
+            ApplicationEventPublisher applicationEventPublisher,
+            UserService userService
     ) {
         this.taskMapper = taskMapper;
         this.taskQueryService = taskQueryService;
         this.sensitiveWordFilter = sensitiveWordFilter;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.userService = userService;
     }
 
     @Transactional
     public TaskDetailDTO create(Long publisherId, TaskCreateRequest request) {
+        userService.requireOperableUser(publisherId);
         Task task = new Task();
         task.setPublisherId(publisherId);
         fillUpdatableFields(task, request.title(), request.description(), request.category(), request.location(),
@@ -56,6 +61,7 @@ public class TaskService {
 
     @Transactional
     public TaskDetailDTO update(Long taskId, Long publisherId, TaskUpdateRequest request) {
+        userService.requireOperableUser(publisherId);
         Task existing = requireOwnedEditableTask(taskId, publisherId);
         fillUpdatableFields(existing, request.title(), request.description(), request.category(), request.location(),
                 request.reward(), request.longitude(), request.latitude(), request.deadlineTime(),
@@ -68,6 +74,7 @@ public class TaskService {
 
     @Transactional
     public void delete(Long taskId, Long publisherId) {
+        userService.requireOperableUser(publisherId);
         Task existing = requireOwnedTask(taskId, publisherId);
         if (existing.getStatus() != null && existing.getStatus() == TaskCodecs.TASK_STATUS_COMPLETED) {
             throw new BusinessException(ErrorCode.CONFLICT, "已完成需求不能取消");
@@ -81,7 +88,9 @@ public class TaskService {
     public void adminOffline(Long taskId) {
         Task existing = requireTask(taskId);
         existing.setStatus(TaskCodecs.TASK_STATUS_OFFLINE);
+        existing.setIsDeleted(true);
         taskMapper.updateTask(existing);
+        taskMapper.softDeleteOrdersByTask(taskId);
     }
 
     public Task requireTask(Long taskId) {

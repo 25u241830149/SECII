@@ -1,36 +1,11 @@
 <template>
   <section class="home-page">
     <main class="home-main">
-      <section class="hero-card">
-        <div class="hero-content">
-          <h1>让校园互助更高效、更可信、更简单</h1>
-          <p>发布需求、发现服务、完成协作，CampusHub 帮你把零散的校园互助连接起来。</p>
-
-          <div class="quick-actions">
-            <RouterLink class="quick-card" to="/tasks/publish">
-              <span class="quick-icon blue"><el-icon><Promotion /></el-icon></span>
-              <span>
-                <strong>发布互助需求</strong>
-                <small>填写需求信息<br />快速发布</small>
-              </span>
-            </RouterLink>
-            <button class="quick-card" type="button" @click="scrollToTasks">
-              <span class="quick-icon purple"><el-icon><Search /></el-icon></span>
-              <span>
-                <strong>浏览可接需求</strong>
-                <small>发现合适的需求<br />提供帮助</small>
-              </span>
-            </button>
-            <RouterLink class="quick-card" to="/orders">
-              <span class="quick-icon green"><el-icon><Memo /></el-icon></span>
-              <span>
-                <strong>查看我的订单</strong>
-                <small>管理订单进度<br />查看历史记录</small>
-              </span>
-            </RouterLink>
-          </div>
-        </div>
-      </section>
+      <CampusHero
+        @publish="router.push('/tasks/publish')"
+        @browse="scrollToTasks"
+        @orders="router.push('/orders')"
+      />
 
       <section ref="taskPanelRef" class="task-panel">
         <header class="task-tabs">
@@ -235,7 +210,9 @@
             <p v-for="slot in noticeSlots" :key="slot.key" class="notice-item">
               <template v-if="slot.notice">
                 <span :class="['notice-dot', { unread: !slot.notice.read }]"></span>
-                <span>{{ slot.notice.title || slot.notice.content || '无标题消息' }}</span>
+                <span class="notice-text" :title="slot.notice.title || slot.notice.content || '无标题消息'">
+                  {{ slot.notice.title || slot.notice.content || '无标题消息' }}
+                </span>
                 <small>{{ formatRelativeTime(slot.notice.createdAt) }}</small>
               </template>
               <template v-else>
@@ -287,13 +264,11 @@ import {
   Document,
   Location,
   Medal,
-  Memo,
   MoreFilled,
   PriceTag,
   Promotion,
   Reading,
   Refresh,
-  Search,
   StarFilled,
   UserFilled,
 } from '@element-plus/icons-vue'
@@ -303,6 +278,7 @@ import { getOrders, getOrderStats, grabOrder } from '@/api/order'
 import { getMessages } from '@/api/message'
 import { getTasks } from '@/api/task'
 import { getUserHome } from '@/api/user'
+import CampusHero from '@/components/home/CampusHero.vue'
 import { useAppStore, useAuthStore, useFeedStore } from '@/stores'
 import {
   getRecommendationHint,
@@ -387,13 +363,13 @@ const categoryMeta: Record<TaskCategory, {
   OTHER: { icon: MoreFilled, tone: 'other' },
 }
 
-const displayName = computed(() => authStore.user?.nickname || '同学')
-const currentAvatar = computed(() => resolveAssetUrl(authStore.user?.avatarUrl || ''))
+const displayName = computed(() => userSummary.value?.nickname || authStore.user?.nickname || '同学')
+const currentAvatar = computed(() => resolveAssetUrl(userSummary.value?.avatarUrl || authStore.user?.avatarUrl || ''))
 const avatarFallback = computed(() => displayName.value.slice(0, 1).toUpperCase())
 const creditScore = computed(() => userSummary.value?.creditScore ?? authStore.user?.creditScore ?? 90)
 const creditLevel = computed(() => userSummary.value?.creditLevel || '普通用户')
 
-const completedOrderCount = computed(() => userSummary.value?.completedOrderCount ?? orderStats.value.completed)
+const completedOrderCount = computed(() => orderStats.value.completed)
 const averageRating = computed(() => userSummary.value?.averageRating ?? null)
 const recommendationHint = computed(() => getRecommendationHint(recommendationProfile.value))
 
@@ -1457,9 +1433,17 @@ onBeforeUnmount(() => {
   grid-template-columns: 10px minmax(0, 1fr) 68px;
   gap: 10px;
   align-items: center;
+  min-width: 0;
   margin: 0;
   color: #4b5563;
   font-size: 13px;
+}
+
+.notice-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notice-dot {
@@ -1479,7 +1463,10 @@ onBeforeUnmount(() => {
 
 .notice-item small {
   color: #8b95a5;
+  overflow: hidden;
   text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .notice-placeholder-text {

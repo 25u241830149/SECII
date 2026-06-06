@@ -1,5 +1,7 @@
 package com.campushub.message.service;
 
+import com.campushub.common.event.ReportHandledEvent;
+import com.campushub.common.event.VerificationReviewedEvent;
 import com.campushub.order.event.OrderCancelledEvent;
 import com.campushub.order.event.OrderCompletedEvent;
 import com.campushub.order.event.OrderConfirmedEvent;
@@ -129,5 +131,38 @@ public class NotificationService {
                 "你收到一条新评价",
                 "订单 #" + event.orderId() + " 收到 " + event.rating() + " 星评价。"
         );
+    }
+
+    @EventListener
+    public void onVerificationReviewed(VerificationReviewedEvent event) {
+        String title = event.approved() ? "实名认证审核通过" : "实名认证审核未通过";
+        String content = event.approved()
+                ? "你的实名认证已通过，平台权益已恢复正常使用。"
+                : "你的实名认证审核未通过。" + appendRemark(event.remark());
+        messageService.notifyUser(event.userId(), MessageCodecs.TYPE_SYSTEM, title, content);
+    }
+
+    @EventListener
+    public void onReportHandled(ReportHandledEvent event) {
+        boolean accepted = "HANDLED".equals(event.status());
+        messageService.notifyUser(
+                event.reporterId(),
+                MessageCodecs.TYPE_REPORT,
+                accepted ? "举报已处理" : "举报已驳回",
+                "你提交的举报 #" + event.reportId() + " 已完成处理。" + appendRemark(event.result())
+        );
+        if (accepted) {
+            messageService.notifyIfDifferent(
+                    event.targetUserId(),
+                    event.reporterId(),
+                    MessageCodecs.TYPE_REPORT,
+                    "举报处理通知",
+                    "你被举报的内容已由管理员处理，请遵守平台规则。" + appendRemark(event.result())
+            );
+        }
+    }
+
+    private String appendRemark(String remark) {
+        return remark == null || remark.isBlank() ? "" : "处理说明：" + remark.trim();
     }
 }

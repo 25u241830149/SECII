@@ -124,12 +124,29 @@ CREATE TABLE IF NOT EXISTS t_task_comment (
     id BIGSERIAL PRIMARY KEY,
     task_id BIGINT NOT NULL REFERENCES t_task(id),
     author_id BIGINT NOT NULL REFERENCES u_user(id),
+    parent_comment_id BIGINT REFERENCES t_task_comment(id),
+    reply_to_user_id BIGINT REFERENCES u_user(id),
     content VARCHAR(500) NOT NULL,
+    like_count INTEGER NOT NULL DEFAULT 0,
     create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+ALTER TABLE t_task_comment ADD COLUMN IF NOT EXISTS parent_comment_id BIGINT REFERENCES t_task_comment(id);
+ALTER TABLE t_task_comment ADD COLUMN IF NOT EXISTS reply_to_user_id BIGINT REFERENCES u_user(id);
+ALTER TABLE t_task_comment ADD COLUMN IF NOT EXISTS like_count INTEGER NOT NULL DEFAULT 0;
+
 COMMENT ON TABLE t_task_comment IS 'Public discussion comments for a task';
+
+CREATE TABLE IF NOT EXISTS t_task_comment_like (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES u_user(id),
+    comment_id BIGINT NOT NULL REFERENCES t_task_comment(id),
+    create_time TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_task_comment_like_user_comment UNIQUE (user_id, comment_id)
+);
+
+COMMENT ON TABLE t_task_comment_like IS 'Likes for task discussion comments';
 
 CREATE TABLE IF NOT EXISTS t_order (
     id BIGSERIAL PRIMARY KEY,
@@ -282,7 +299,7 @@ CREATE TABLE IF NOT EXISTS t_report (
     task_id BIGINT REFERENCES t_task(id),
     order_id BIGINT REFERENCES t_order(id),
     post_id BIGINT REFERENCES t_post(id),
-    comment_id BIGINT REFERENCES t_comment(id),
+    comment_id BIGINT,
     target_type SMALLINT NOT NULL,
     target_id BIGINT NOT NULL,
     reason VARCHAR(255) NOT NULL,
@@ -297,6 +314,8 @@ CREATE TABLE IF NOT EXISTS t_report (
 COMMENT ON TABLE t_report IS 'Reports and moderation records';
 COMMENT ON COLUMN t_report.target_type IS '0=user, 1=task, 2=order, 3=post, 4=comment';
 COMMENT ON COLUMN t_report.status IS '0=pending, 1=handled, 2=rejected';
+
+ALTER TABLE t_report DROP CONSTRAINT IF EXISTS t_report_comment_id_fkey;
 
 CREATE INDEX IF NOT EXISTS idx_user_role_status ON u_user (role, status);
 CREATE INDEX IF NOT EXISTS idx_user_create_time ON u_user (create_time DESC);
@@ -349,6 +368,11 @@ CREATE INDEX IF NOT EXISTS idx_comment_reply_to ON t_comment (reply_to_comment_i
 CREATE INDEX IF NOT EXISTS idx_post_like_post ON t_post_like (post_id);
 CREATE INDEX IF NOT EXISTS idx_post_like_user_time ON t_post_like (user_id, create_time DESC);
 
+CREATE INDEX IF NOT EXISTS idx_task_comment_task_time ON t_task_comment (task_id, create_time DESC);
+CREATE INDEX IF NOT EXISTS idx_task_comment_parent_time ON t_task_comment (parent_comment_id, create_time ASC);
+CREATE INDEX IF NOT EXISTS idx_task_comment_like_comment ON t_task_comment_like (comment_id);
+CREATE INDEX IF NOT EXISTS idx_task_comment_like_user_time ON t_task_comment_like (user_id, create_time DESC);
+
 CREATE INDEX IF NOT EXISTS idx_post_favorite_post ON t_post_favorite (post_id);
 CREATE INDEX IF NOT EXISTS idx_post_favorite_user_time ON t_post_favorite (user_id, create_time DESC);
 
@@ -374,7 +398,7 @@ INSERT INTO u_user (
 ) VALUES (
     'admin',
     '$2a$10$PomPUVrcJgrqSwBGai29P.ct1YOZOmOYqpKzDGNjbPQUqs4r4N0V2',
-    'CampusHub Admin',
+    'Admin',
     NULL,
     1,
     100,

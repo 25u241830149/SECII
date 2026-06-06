@@ -218,7 +218,7 @@ onMounted(loadTask)
 .detail-page {
   display: grid;
   height: calc(100vh - 122px);
-  gap: 18px;
+  gap: 12px;
   min-height: 0;
   align-content: start;
   overflow-y: auto;
@@ -241,25 +241,25 @@ onMounted(loadTask)
 
 .detail-card {
   display: grid;
-  gap: 22px;
-  padding: 28px;
+  gap: 16px;
+  padding: 18px 22px;
   border: 1px solid #e7edf7;
-  border-radius: 24px;
+  border-radius: 16px;
   background: #fff;
-  box-shadow: 0 22px 40px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .headline {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 180px;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 16px;
 }
 
 .category-pill {
   display: inline-flex;
-  min-height: 30px;
+  min-height: 26px;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 9px;
   border-radius: 999px;
   background: #eff6ff;
   color: #1d4ed8;
@@ -268,9 +268,14 @@ onMounted(loadTask)
 }
 
 .headline h1 {
-  margin: 14px 0 10px;
+  margin: 10px 0 6px;
   color: #111827;
-  font-size: 34px;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.headline p {
+  line-height: 1.55;
 }
 
 .headline p,
@@ -282,16 +287,15 @@ onMounted(loadTask)
 .reward-box {
   display: flex;
   flex-direction: column;
-  min-width: 150px;
+  min-width: 130px;
   align-items: flex-end;
-  gap: 12px;
-  padding-top: 6px;
+  gap: 10px;
   text-align: right;
 }
 
 .reward-box strong {
   color: #ea580c;
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 900;
   line-height: 1;
   text-align: right;
@@ -301,11 +305,11 @@ onMounted(loadTask)
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 10px;
+  padding: 5px 9px;
   border-radius: 999px;
   background: #e8f8ee;
   color: #119468;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
@@ -335,14 +339,25 @@ onMounted(loadTask)
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  gap: 0;
+  border-top: 1px solid #edf2f7;
+  border-bottom: 1px solid #edf2f7;
 }
 
-.meta-grid > div,
+.meta-grid > div {
+  min-width: 0;
+  padding: 12px 16px;
+  border-right: 1px solid #edf2f7;
+}
+
+.meta-grid > div:last-child {
+  border-right: 0;
+}
+
 .location-box {
-  padding: 18px;
-  border-radius: 18px;
-  background: #f8fbff;
+  padding: 12px 0;
+  border-top: 1px solid #edf2f7;
+  background: transparent;
 }
 
 .meta-grid strong,
@@ -351,22 +366,26 @@ onMounted(loadTask)
 }
 
 .meta-grid strong {
-  margin-top: 8px;
+  overflow: hidden;
+  margin-top: 5px;
   color: #111827;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .location-box h2 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
+  font-size: 20px;
 }
 
 .image-box {
   display: grid;
   grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
-  gap: 18px;
+  gap: 16px;
   align-items: center;
-  padding: 18px;
-  border-radius: 18px;
-  background: #f8fbff;
+  padding: 12px 0;
+  border-top: 1px solid #edf2f7;
+  background: transparent;
 }
 
 .image-box img {
@@ -389,7 +408,8 @@ onMounted(loadTask)
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
+  padding-top: 2px;
 }
 
 @media (max-width: 900px) {

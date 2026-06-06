@@ -140,6 +140,14 @@
           AND is_deleted = false
     </update>
 
+    <update id="softDeleteOrdersByTask">
+        UPDATE t_order
+        SET is_deleted = true,
+            update_time = CURRENT_TIMESTAMP
+        WHERE task_id = #{taskId}
+          AND is_deleted = false
+    </update>
+
     <select id="selectTaskById" resultMap="TaskResultMap">
         SELECT
         <include refid="TaskColumns"/>

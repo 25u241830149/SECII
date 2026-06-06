@@ -50,15 +50,17 @@ const isActive = (target: string) => {
 <style scoped>
 .profile-shell {
   display: grid;
+  height: calc(100vh - 124px);
+  min-height: 0;
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 24px;
+  overflow: hidden;
 }
 
 .profile-sidebar {
-  position: sticky;
-  top: 94px;
   display: flex;
-  min-height: calc(100vh - 124px);
+  height: 100%;
+  min-height: 0;
   flex-direction: column;
   gap: 14px;
   padding: 24px 14px;
@@ -66,6 +68,7 @@ const isActive = (target: string) => {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  overflow-y: auto;
 }
 
 .profile-nav-item {
@@ -116,18 +119,44 @@ const isActive = (target: string) => {
 
 .profile-content {
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+}
+
+.profile-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.profile-content::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.profile-content::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 @media (max-width: 1080px) {
   .profile-shell {
+    height: auto;
+    overflow: visible;
     grid-template-columns: 1fr;
   }
 
   .profile-sidebar {
     position: static;
+    height: auto;
     min-height: auto;
     flex-direction: row;
     flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .profile-content {
+    overflow: visible;
+    padding-right: 0;
   }
 
   .profile-nav-item {

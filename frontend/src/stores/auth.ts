@@ -45,6 +45,19 @@ const readJson = <T>(key: string): T | null => {
   }
 }
 
+const normalizeUser = (user: UserInfoDTO | null): UserInfoDTO | null => {
+  if (!user) return null
+
+  if (user.role === 'ADMIN' && user.nickname === 'CampusHub Admin') {
+    return {
+      ...user,
+      nickname: 'Admin',
+    }
+  }
+
+  return user
+}
+
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     token: '',
@@ -66,13 +79,13 @@ export const useAuthStore = defineStore('auth', {
       }
 
       this.token = readStoredValue(TOKEN_STORAGE_KEY) || ''
-      this.user = readJson<UserInfoDTO>(USER_STORAGE_KEY)
+      this.user = normalizeUser(readJson<UserInfoDTO>(USER_STORAGE_KEY))
       this.initialized = true
     },
 
     setSession(session: AuthSession, rememberMe = false) {
       this.token = session.token
-      this.user = session.user
+      this.user = normalizeUser(session.user)
 
       if (typeof window !== 'undefined') {
         clearStoredSession()
@@ -80,8 +93,8 @@ export const useAuthStore = defineStore('auth', {
         const storage = rememberMe ? window.localStorage : window.sessionStorage
         storage.setItem(TOKEN_STORAGE_KEY, session.token)
 
-        if (session.user) {
-          storage.setItem(USER_STORAGE_KEY, JSON.stringify(session.user))
+        if (this.user) {
+          storage.setItem(USER_STORAGE_KEY, JSON.stringify(this.user))
         }
       }
     },

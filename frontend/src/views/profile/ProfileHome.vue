@@ -8,7 +8,7 @@
         <div>
           <div class="name-line">
             <h1>{{ displayName }}</h1>
-            <span>{{ creditLevel }} 可信用户</span>
+            <span>{{ creditLevel }}</span>
           </div>
           <p>学号：{{ authStore.user?.studentId || '-' }} <b></b> {{ authStore.user?.role || 'USER' }}</p>
           <p class="bio">{{ authStore.user?.department || userStore.home?.nickname || '校园互助用户' }}</p>
@@ -28,7 +28,6 @@
         <div>
           <span>信用等级</span>
           <strong>{{ creditLevel }}</strong>
-          <small>可信用户</small>
         </div>
       </div>
     </section>
@@ -132,7 +131,7 @@ import { getOrders } from '@/api/order'
 import { getFavoriteTasks, getPublishedTasks } from '@/api/task'
 import { useAuthStore, useUserStore } from '@/stores'
 import { resolveAssetUrl } from '@/utils/asset'
-import type { EntityId, OrderListDTO, TaskListDTO } from '@/types'
+import type { EntityId, OrderStatus, TaskListDTO, TaskStatusFilter } from '@/types'
 import { profileTaskCategoryLabels } from './profileLabels'
 
 const router = useRouter()
@@ -140,11 +139,19 @@ const authStore = useAuthStore()
 const userStore = useUserStore()
 
 const favoritePreview = ref<TaskListDTO[]>([])
-const publishedTasks = ref<TaskListDTO[]>([])
-const helperOrders = ref<OrderListDTO[]>([])
-const allOrders = ref<OrderListDTO[]>([])
 const publishedTotal = ref(0)
+const helperOrderTotal = ref(0)
 const allOrderTotal = ref(0)
+const publishedStats = ref({
+  inProgress: 0,
+  completed: 0,
+  offline: 0,
+})
+const helperOrderStats = ref({
+  inProgress: 0,
+  completed: 0,
+  cancelled: 0,
+})
 
 const displayName = computed(() => userStore.home?.nickname || authStore.user?.nickname || '用户')
 const userAvatar = computed(() => resolveAssetUrl(userStore.home?.avatarUrl || authStore.user?.avatarUrl || ''))
@@ -152,28 +159,19 @@ const avatarFallback = computed(() => displayName.value.slice(0, 1).toUpperCase(
 const creditScore = computed(() => userStore.home?.creditScore ?? authStore.user?.creditScore ?? 100)
 const creditLevel = computed(() => userStore.home?.creditLevel || 'Lv.3')
 
-const publishedStats = computed(() => ({
-  inProgress: publishedTasks.value.filter((task) => task.status === 'OPEN' || task.status === 'IN_PROGRESS').length,
-  completed: publishedTasks.value.filter((task) => task.status === 'COMPLETED').length,
-  offline: publishedTasks.value.filter((task) => task.status === 'OFFLINE').length,
+const allOrderStats = computed(() => ({
+  inProgress: publishedStats.value.inProgress + helperOrderStats.value.inProgress,
+  completed: publishedStats.value.completed + helperOrderStats.value.completed,
+  cancelled: publishedStats.value.offline + helperOrderStats.value.cancelled,
 }))
 
-const getOrderStats = (orders: OrderListDTO[]) => ({
-  inProgress: orders.filter((order) => order.status === 'PENDING' || order.status === 'CONFIRMED').length,
-  completed: orders.filter((order) => order.status === 'COMPLETED').length,
-  cancelled: orders.filter((order) => order.status === 'CANCELLED').length,
-})
-
-const helperOrderStats = computed(() => getOrderStats(helperOrders.value))
-const allOrderStats = computed(() => getOrderStats(allOrders.value))
-
 const completionRate = computed(() => {
-  const total = allOrders.value.length
+  const total = allOrderStats.value.inProgress + allOrderStats.value.completed + allOrderStats.value.cancelled
   return total ? Math.round((allOrderStats.value.completed / total) * 100) : 0
 })
 
 const cancelRate = computed(() => {
-  const total = allOrders.value.length
+  const total = allOrderStats.value.inProgress + allOrderStats.value.completed + allOrderStats.value.cancelled
   return total ? Math.round((allOrderStats.value.cancelled / total) * 100) : 0
 })
 
@@ -188,20 +186,70 @@ const formatDate = (value: string) => {
   return value.replace('T', ' ').slice(0, 16)
 }
 
+const getPublishedTotal = async (userId: EntityId, status?: Exclude<TaskStatusFilter, 'ALL'>) => {
+  const result = await getPublishedTasks({
+    userId,
+    ...(status ? { status } : {}),
+    page: 1,
+    size: 1,
+  })
+  return result.total
+}
+
+const getOrderTotal = async (userId: EntityId, role: 'helper', status?: OrderStatus) => {
+  const result = await getOrders({
+    userId,
+    role,
+    ...(status ? { status } : {}),
+    page: 1,
+    size: 1,
+  })
+  return result.total
+}
+
 const loadProfileDashboard = async (userId: EntityId) => {
-  const [favorites, published, helper, all] = await Promise.all([
+  const [
+    favorites,
+    publishedAll,
+    publishedOpen,
+    publishedPending,
+    publishedInProgress,
+    publishedCompleted,
+    publishedCancelled,
+    helperAll,
+    helperPending,
+    helperConfirmed,
+    helperCompleted,
+    helperCancelled,
+  ] = await Promise.all([
     getFavoriteTasks({ userId, page: 1, size: 3 }),
-    getPublishedTasks({ userId, page: 1, size: 50 }),
-    getOrders({ userId, role: 'helper', page: 1, size: 50 }),
-    getOrders({ userId, page: 1, size: 50 }),
+    getPublishedTotal(userId),
+    getPublishedTotal(userId, 'OPEN'),
+    getPublishedTotal(userId, 'PENDING_CONFIRM'),
+    getPublishedTotal(userId, 'IN_PROGRESS'),
+    getPublishedTotal(userId, 'COMPLETED'),
+    getPublishedTotal(userId, 'CANCELLED'),
+    getOrderTotal(userId, 'helper'),
+    getOrderTotal(userId, 'helper', 'PENDING'),
+    getOrderTotal(userId, 'helper', 'CONFIRMED'),
+    getOrderTotal(userId, 'helper', 'COMPLETED'),
+    getOrderTotal(userId, 'helper', 'CANCELLED'),
   ])
 
   favoritePreview.value = favorites.records
-  publishedTasks.value = published.records
-  helperOrders.value = helper.records
-  allOrders.value = all.records
-  publishedTotal.value = published.total
-  allOrderTotal.value = all.total
+  publishedTotal.value = publishedAll
+  helperOrderTotal.value = helperAll
+  allOrderTotal.value = publishedAll + helperAll
+  publishedStats.value = {
+    inProgress: publishedOpen + publishedPending + publishedInProgress,
+    completed: publishedCompleted,
+    offline: publishedCancelled,
+  }
+  helperOrderStats.value = {
+    inProgress: helperPending + helperConfirmed,
+    completed: helperCompleted,
+    cancelled: helperCancelled,
+  }
 }
 
 onMounted(async () => {
@@ -249,9 +297,10 @@ onMounted(async () => {
 
 .name-line {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .name-line h1 {
@@ -266,8 +315,9 @@ onMounted(async () => {
   border-radius: 6px;
   background: #dbeafe;
   color: #2563eb;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .identity p {
@@ -296,7 +346,7 @@ onMounted(async () => {
 
 .credit-panel {
   display: grid;
-  grid-template-columns: 1fr 110px 1fr;
+  grid-template-columns: minmax(76px, 0.9fr) 104px minmax(140px, 1.25fr);
   align-items: center;
   padding: 28px;
   border-radius: 8px;
@@ -305,7 +355,7 @@ onMounted(async () => {
   text-align: center;
 }
 
-.credit-panel > div + div {
+.credit-panel > div:last-child {
   border-left: 1px solid #dbe3f0;
 }
 
@@ -322,6 +372,11 @@ onMounted(async () => {
   line-height: 1;
 }
 
+.credit-panel > div:last-child strong {
+  font-size: 30px;
+  white-space: nowrap;
+}
+
 .credit-panel small {
   display: block;
   margin-top: 8px;
@@ -331,15 +386,16 @@ onMounted(async () => {
 
 .medal {
   display: grid;
-  width: 84px;
-  height: 84px;
+  width: 92px;
+  height: 92px;
+  box-sizing: border-box;
   place-items: center;
   margin: 0 auto;
-  border: 8px solid #bcd3ff;
+  border: 9px solid #bcd3ff;
   border-radius: 50%;
   background: linear-gradient(135deg, #82a9ff, #4f77de);
   color: #fff;
-  font-size: 36px;
+  font-size: 40px;
   box-shadow: 0 12px 24px rgba(79, 119, 222, 0.28);
 }
 

@@ -33,23 +33,23 @@
         </button>
       </div>
 
-      <el-skeleton :loading="loading" animated :rows="6">
-        <template #default>
-          <el-empty v-if="!items.length" description="暂无记录" />
-          <div v-else class="order-list">
-            <article v-for="item in items" :key="item.key" class="order-row">
-              <div class="main">
-                <h2>{{ item.title }}</h2>
-                <p>{{ taskCategoryLabels[item.category] }} · {{ item.location || '校内待定地点' }}</p>
-                <small>{{ item.meta }}</small>
-              </div>
-              <div class="price">{{ formatReward(item) }}</div>
-              <span :class="['status-badge', item.tone]">{{ item.statusText }}</span>
-              <el-button @click="goDetail(item)">{{ item.actionText }}</el-button>
-            </article>
-          </div>
-        </template>
-      </el-skeleton>
+      <div class="orders-content">
+        <div v-if="!items.length" class="order-empty">
+          <el-empty description="暂无记录" />
+        </div>
+        <div v-else class="order-list">
+          <article v-for="item in items" :key="item.key" class="order-row">
+            <div class="main">
+              <h2>{{ item.title }}</h2>
+              <p>{{ taskCategoryLabels[item.category] }} · {{ item.location || '校内待定地点' }}</p>
+              <small>{{ item.meta }}</small>
+            </div>
+            <div class="price">{{ formatReward(item) }}</div>
+            <span :class="['status-badge', item.tone]">{{ item.statusText }}</span>
+            <el-button @click="goDetail(item)">{{ item.actionText }}</el-button>
+          </article>
+        </div>
+      </div>
 
       <div class="pager">
         <span>共 {{ total }} 条</span>
@@ -271,8 +271,7 @@ const loadPublishedItems = async () => {
 
   if (
     activeStatus.value === 'PENDING' ||
-    activeStatus.value === 'WAITING_REVIEW' ||
-    activeStatus.value === 'COMPLETED'
+    activeStatus.value === 'WAITING_REVIEW'
   ) {
     return loadOrderItems('poster', orderStatusByFilter[activeStatus.value])
   }
@@ -400,16 +399,18 @@ watch(
   flex-direction: column;
 }
 
-.list-card :deep(.el-skeleton) {
+.orders-content {
+  display: flex;
   min-height: 0;
   flex: 1;
 }
 
-.list-card :deep(.el-skeleton__content) {
+.order-empty {
   display: flex;
-  height: 100%;
   min-height: 0;
-  flex-direction: column;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
 }
 
 .role-tabs,

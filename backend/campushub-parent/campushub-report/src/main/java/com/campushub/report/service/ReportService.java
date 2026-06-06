@@ -1,6 +1,7 @@
 package com.campushub.report.service;
 
 import com.campushub.common.constant.ErrorCode;
+import com.campushub.common.event.ReportHandledEvent;
 import com.campushub.common.exception.BusinessException;
 import com.campushub.common.response.PageResponse;
 import com.campushub.common.utils.ValidateUtils;
@@ -9,6 +10,7 @@ import com.campushub.report.dto.ReportDTO;
 import com.campushub.report.dto.ReportHandleRequest;
 import com.campushub.report.entity.Report;
 import com.campushub.report.mapper.ReportMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,9 +20,11 @@ public class ReportService {
     private static final int MAX_REASON_LENGTH = 255;
 
     private final ReportMapper reportMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
-    public ReportService(ReportMapper reportMapper) {
+    public ReportService(ReportMapper reportMapper, ApplicationEventPublisher applicationEventPublisher) {
         this.reportMapper = reportMapper;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Transactional
@@ -78,7 +82,30 @@ public class ReportService {
         int status = ReportCodecs.handleStatusCode(request.status());
         String result = requiredTrim(request.result(), "处理说明不能为空");
         reportMapper.handleReport(reportId, handlerId, status, result);
+        applicationEventPublisher.publishEvent(new ReportHandledEvent(
+                existing.getId(),
+                existing.getReporterId(),
+                existing.getTargetUserId(),
+                targetTypeName(existing.getTargetType()),
+                existing.getTargetId(),
+                status == ReportCodecs.STATUS_HANDLED ? "HANDLED" : "REJECTED",
+                result
+        ));
         return reportMapper.selectReportDetail(reportId);
+    }
+
+    private String targetTypeName(Integer targetType) {
+        if (targetType == null) {
+            return "UNKNOWN";
+        }
+        return switch (targetType) {
+            case ReportCodecs.TARGET_USER -> "USER";
+            case ReportCodecs.TARGET_TASK -> "TASK";
+            case ReportCodecs.TARGET_ORDER -> "ORDER";
+            case ReportCodecs.TARGET_POST -> "POST";
+            case ReportCodecs.TARGET_COMMENT -> "COMMENT";
+            default -> "UNKNOWN";
+        };
     }
 
     private void fillTargetReference(Report report, int targetType, Long targetId) {

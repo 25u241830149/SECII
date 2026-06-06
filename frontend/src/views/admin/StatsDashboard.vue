@@ -10,6 +10,58 @@
           </article>
         </section>
 
+        <section class="chart-grid">
+          <article class="chart-card completion-chart">
+            <header>
+              <h2>订单完成分布</h2>
+              <span>{{ stats?.completedOrders || 0 }} / {{ stats?.totalOrders || 0 }}</span>
+            </header>
+            <div class="completion-body">
+              <div class="donut" :style="orderRingStyle">
+                <strong>{{ completionRate }}%</strong>
+                <span>完成率</span>
+              </div>
+              <p>用于观察平台订单闭环情况，完成率越高说明履约链路越稳定。</p>
+            </div>
+          </article>
+
+          <article class="chart-card">
+            <header>
+              <h2>任务状态概览</h2>
+              <span>{{ taskTotal }} 个任务</span>
+            </header>
+            <div class="bar-list">
+              <div v-for="row in taskStatusRows" :key="row.label" class="bar-row">
+                <div class="bar-meta">
+                  <span>{{ row.label }}</span>
+                  <strong>{{ row.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <i :class="row.tone" :style="{ width: row.percent + '%' }"></i>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="chart-card">
+            <header>
+              <h2>处理压力</h2>
+              <span>{{ pressureTotal }} 项</span>
+            </header>
+            <div class="bar-list">
+              <div v-for="row in pressureRows" :key="row.label" class="bar-row">
+                <div class="bar-meta">
+                  <span>{{ row.label }}</span>
+                  <strong>{{ row.value }}</strong>
+                </div>
+                <div class="bar-track">
+                  <i :class="row.tone" :style="{ width: row.percent + '%' }"></i>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
         <section class="summary-panel">
           <article>
             <h2>订单完成率</h2>
@@ -65,6 +117,42 @@ const averageRating = computed(() => {
   return value ? value.toFixed(1) : '暂无'
 })
 
+const taskTotal = computed(() => {
+  const data = stats.value
+  return (data?.openTasks || 0) + (data?.inProgressTasks || 0) + (data?.completedTasks || 0)
+})
+
+const pressureTotal = computed(() => {
+  const data = stats.value
+  return (data?.pendingReports || 0) + (data?.pendingVerifications || 0) + (data?.unreadMessages || 0)
+})
+
+const percentOf = (value: number, total: number) => (total ? Math.round((value / total) * 100) : 0)
+
+const orderRingStyle = computed(() => ({
+  '--progress': `${completionRate.value}%`,
+}))
+
+const taskStatusRows = computed(() => {
+  const data = stats.value
+  const total = taskTotal.value
+  return [
+    { label: '开放任务', value: data?.openTasks || 0, percent: percentOf(data?.openTasks || 0, total), tone: 'blue' },
+    { label: '进行中', value: data?.inProgressTasks || 0, percent: percentOf(data?.inProgressTasks || 0, total), tone: 'green' },
+    { label: '已完成', value: data?.completedTasks || 0, percent: percentOf(data?.completedTasks || 0, total), tone: 'orange' },
+  ]
+})
+
+const pressureRows = computed(() => {
+  const data = stats.value
+  const total = pressureTotal.value
+  return [
+    { label: '待处理举报', value: data?.pendingReports || 0, percent: percentOf(data?.pendingReports || 0, total), tone: 'orange' },
+    { label: '认证待审', value: data?.pendingVerifications || 0, percent: percentOf(data?.pendingVerifications || 0, total), tone: 'blue' },
+    { label: '未读消息', value: data?.unreadMessages || 0, percent: percentOf(data?.unreadMessages || 0, total), tone: 'green' },
+  ]
+})
+
 const loadStats = async () => {
   loading.value = true
   try {
@@ -90,6 +178,7 @@ onMounted(loadStats)
 }
 
 .stat-card,
+.chart-card,
 .summary-panel article {
   padding: 20px;
   border: 1px solid #e7edf7;
@@ -112,6 +201,122 @@ onMounted(loadStats)
 .stat-card strong {
   color: #111827;
   font-size: 30px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 1fr;
+  gap: 14px;
+}
+
+.chart-card {
+  display: grid;
+  gap: 18px;
+}
+
+.chart-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.chart-card h2,
+.chart-card p {
+  margin: 0;
+}
+
+.chart-card h2 {
+  color: #111827;
+  font-size: 18px;
+}
+
+.chart-card header span,
+.chart-card p,
+.bar-meta span {
+  color: #64748b;
+}
+
+.completion-body {
+  display: grid;
+  grid-template-columns: 124px minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+}
+
+.donut {
+  display: grid;
+  width: 124px;
+  height: 124px;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #fff 0 55%, transparent 56%),
+    conic-gradient(#1268ed var(--progress), #e8eef7 0);
+}
+
+.donut strong,
+.donut span {
+  grid-area: 1 / 1;
+}
+
+.donut strong {
+  transform: translateY(-8px);
+  color: #1268ed;
+  font-size: 28px;
+}
+
+.donut span {
+  transform: translateY(24px);
+  color: #64748b;
+  font-size: 13px;
+}
+
+.bar-list {
+  display: grid;
+  gap: 16px;
+}
+
+.bar-row {
+  display: grid;
+  gap: 8px;
+}
+
+.bar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.bar-meta strong {
+  color: #111827;
+}
+
+.bar-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eef2f7;
+}
+
+.bar-track i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+}
+
+.bar-track .blue {
+  background: #1268ed;
+}
+
+.bar-track .green {
+  background: #21b485;
+}
+
+.bar-track .orange {
+  background: #ff8a1f;
 }
 
 .summary-panel {
@@ -140,6 +345,10 @@ onMounted(loadStats)
 @media (max-width: 1100px) {
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
   }
 
   .summary-panel {

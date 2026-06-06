@@ -64,4 +64,52 @@
               AND is_deleted = false
         ) THEN 1 ELSE 0 END
     </select>
+
+    <select id="selectAdminUserOptions" resultType="com.campushub.user.dto.AdminUserOptionDTO">
+        SELECT
+            u_user.id AS userId,
+            u_user.student_id AS studentId,
+            COALESCE(u_user.nickname, u_user.student_id) AS nickname,
+            CASE u_user.role WHEN 1 THEN 'ADMIN' ELSE 'USER' END AS role,
+            CASE u_user.status WHEN 2 THEN 'BANNED' WHEN 1 THEN 'PENDING_VERIFICATION' ELSE 'NORMAL' END AS status,
+            u_user.credit_score AS creditScore,
+            latest_verification.real_name AS verificationRealName,
+            CASE latest_verification.status
+                WHEN 0 THEN 'PENDING'
+                WHEN 1 THEN 'APPROVED'
+                WHEN 2 THEN 'REJECTED'
+                ELSE 'NONE'
+            END AS verificationStatus,
+            latest_verification.student_card_image AS verificationStudentCardImage,
+            latest_verification.reject_reason AS verificationRemark,
+            latest_verification.create_time::TEXT AS verificationSubmittedAt
+        FROM u_user
+        LEFT JOIN LATERAL (
+            SELECT
+                real_name,
+                student_card_image,
+                status,
+                reject_reason,
+                create_time
+            FROM t_user_verification
+            WHERE user_id = u_user.id
+            ORDER BY create_time DESC, id DESC
+            LIMIT 1
+        ) latest_verification ON TRUE
+        WHERE u_user.is_deleted = false
+          <if test="role != null">
+            AND u_user.role = #{role}
+          </if>
+          <if test="keyword != null and keyword != ''">
+            AND (
+              CAST(u_user.id AS TEXT) = #{keyword}
+              OR u_user.student_id ILIKE CONCAT('%', #{keyword}, '%')
+              OR u_user.nickname ILIKE CONCAT('%', #{keyword}, '%')
+              OR u_user.real_name ILIKE CONCAT('%', #{keyword}, '%')
+              OR latest_verification.real_name ILIKE CONCAT('%', #{keyword}, '%')
+            )
+          </if>
+        ORDER BY u_user.role DESC, u_user.update_time DESC, u_user.id DESC
+        LIMIT #{limit}
+    </select>
 </mapper>

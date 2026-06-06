@@ -52,8 +52,19 @@ export interface TaskCommentDTO {
   authorId: EntityId
   authorName: string
   authorAvatarUrl?: string | null
+  parentCommentId?: EntityId | null
+  replyToUserId?: EntityId | null
+  replyToUserName?: string | null
   content: string
+  likeCount: number
+  likedByMe: boolean
   createdAt: string
+}
+
+export interface TaskCommentCreateRequest {
+  content: string
+  parentCommentId?: EntityId | null
+  replyToUserId?: EntityId | null
 }
 
 export interface TaskStatsDTO {

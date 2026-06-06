@@ -15,6 +15,7 @@ import com.campushub.task.service.TaskCodecs;
 import com.campushub.task.service.TaskService;
 import com.campushub.task.service.TaskStatusService;
 import com.campushub.user.service.CreditService;
+import com.campushub.user.service.UserService;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,6 +31,7 @@ public class OrderStatusService {
     private final TaskService taskService;
     private final ApplicationEventPublisher applicationEventPublisher;
     private final CreditService creditService;
+    private final UserService userService;
 
     public OrderStatusService(
             OrderMapper orderMapper,
@@ -37,7 +39,8 @@ public class OrderStatusService {
             TaskStatusService taskStatusService,
             TaskService taskService,
             ApplicationEventPublisher applicationEventPublisher,
-            CreditService creditService
+            CreditService creditService,
+            UserService userService
     ) {
         this.orderMapper = orderMapper;
         this.orderService = orderService;
@@ -45,10 +48,12 @@ public class OrderStatusService {
         this.taskService = taskService;
         this.applicationEventPublisher = applicationEventPublisher;
         this.creditService = creditService;
+        this.userService = userService;
     }
 
     @Transactional
     public OrderDetailDTO reject(Long orderId, Long currentUserId) {
+        userService.requireOperableUser(currentUserId);
         Order order = orderService.requireAccessibleOrder(orderId, currentUserId);
         if (!Objects.equals(order.getPosterId(), currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布者可以拒绝该申请");
@@ -66,6 +71,7 @@ public class OrderStatusService {
 
     @Transactional
     public OrderDetailDTO abandon(Long orderId, Long currentUserId) {
+        userService.requireOperableUser(currentUserId);
         Order order = orderService.requireAccessibleOrder(orderId, currentUserId);
         if (!Objects.equals(order.getHelperId(), currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有接单者或申请者可以主动退出");
@@ -98,6 +104,7 @@ public class OrderStatusService {
 
     @Transactional
     public OrderDetailDTO confirm(Long orderId, Long currentUserId) {
+        userService.requireOperableUser(currentUserId);
         Order order = orderService.requireAccessibleOrder(orderId, currentUserId);
         if (!Objects.equals(order.getPosterId(), currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布者可以确认该申请");
@@ -124,6 +131,7 @@ public class OrderStatusService {
 
     @Transactional
     public OrderDetailDTO complete(Long orderId, Long currentUserId) {
+        userService.requireOperableUser(currentUserId);
         Order order = orderService.requireAccessibleOrder(orderId, currentUserId);
         if (!Objects.equals(order.getPosterId(), currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布者可以完成订单");
@@ -143,6 +151,7 @@ public class OrderStatusService {
 
     @Transactional
     public OrderDetailDTO cancel(Long orderId, Long currentUserId) {
+        userService.requireOperableUser(currentUserId);
         Order order = orderService.requireAccessibleOrder(orderId, currentUserId);
         if (!Objects.equals(order.getPosterId(), currentUserId)) {
             throw new BusinessException(ErrorCode.FORBIDDEN, "只有发布者可以取消需求");

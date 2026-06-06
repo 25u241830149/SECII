@@ -4,14 +4,18 @@ import com.campushub.common.response.ApiResponse;
 import com.campushub.common.security.SecurityUtils;
 import com.campushub.user.dto.AdminBanRequest;
 import com.campushub.user.dto.AdminBanResultDTO;
+import com.campushub.user.dto.AdminUserOptionDTO;
 import com.campushub.user.dto.AdminVerifyRequest;
 import com.campushub.user.dto.AdminVerifyResultDTO;
 import com.campushub.user.service.UserService;
 import com.campushub.user.service.VerificationService;
+import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -24,6 +28,16 @@ public class AdminUserController {
     public AdminUserController(UserService userService, VerificationService verificationService) {
         this.userService = userService;
         this.verificationService = verificationService;
+    }
+
+    @GetMapping
+    public ApiResponse<List<AdminUserOptionDTO>> searchUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Integer size
+    ) {
+        SecurityUtils.requireAdmin();
+        return ApiResponse.success(userService.searchAdminUsers(keyword, role, size));
     }
 
     @PostMapping("/{userId}/ban")

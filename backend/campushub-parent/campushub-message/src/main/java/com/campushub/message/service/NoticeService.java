@@ -18,9 +18,11 @@ public class NoticeService {
     private static final int MAX_TITLE_LENGTH = 128;
 
     private final NoticeMapper noticeMapper;
+    private final MessageService messageService;
 
-    public NoticeService(NoticeMapper noticeMapper) {
+    public NoticeService(NoticeMapper noticeMapper, MessageService messageService) {
         this.noticeMapper = noticeMapper;
+        this.messageService = messageService;
     }
 
     public List<NoticeDTO> latest(Integer limit) {
@@ -41,6 +43,12 @@ public class NoticeService {
     public NoticeDTO create(Long publisherId, NoticeCreateRequest request) {
         Notice notice = toNotice(publisherId, request);
         noticeMapper.insertNotice(notice);
+        messageService.notifyActiveUsers(
+                MessageCodecs.TYPE_SYSTEM,
+                "新公告：" + notice.getTitle(),
+                notice.getContent(),
+                publisherId
+        );
         return noticeMapper.selectNoticeDetail(notice.getId());
     }
 

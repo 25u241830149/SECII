@@ -12,6 +12,7 @@ import com.campushub.task.entity.Task;
 import com.campushub.task.service.TaskCodecs;
 import com.campushub.task.service.TaskService;
 import com.campushub.task.service.TaskStatusService;
+import com.campushub.user.service.UserService;
 import java.util.Objects;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
@@ -29,6 +30,7 @@ public class GrabService {
     private final TaskService taskService;
     private final TaskStatusService taskStatusService;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final UserService userService;
 
     public GrabService(
             RedissonClient redissonClient,
@@ -36,7 +38,8 @@ public class GrabService {
             OrderService orderService,
             TaskService taskService,
             TaskStatusService taskStatusService,
-            ApplicationEventPublisher applicationEventPublisher
+            ApplicationEventPublisher applicationEventPublisher,
+            UserService userService
     ) {
         this.redissonClient = redissonClient;
         this.orderMapper = orderMapper;
@@ -44,10 +47,12 @@ public class GrabService {
         this.taskService = taskService;
         this.taskStatusService = taskStatusService;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.userService = userService;
     }
 
     @Transactional
     public OrderDetailDTO grab(GrabOrderRequest request, Long helperId) {
+        userService.requireOperableUser(helperId);
         if (request == null || request.taskId() == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "taskId 不能为空");
         }

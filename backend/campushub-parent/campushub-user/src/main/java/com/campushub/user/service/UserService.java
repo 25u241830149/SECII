@@ -5,6 +5,7 @@ import com.campushub.common.exception.BusinessException;
 import com.campushub.common.utils.EncryptUtils;
 import com.campushub.user.dto.AdminBanRequest;
 import com.campushub.user.dto.AdminBanResultDTO;
+import com.campushub.user.dto.AdminUserOptionDTO;
 import com.campushub.user.dto.ChangePasswordRequest;
 import com.campushub.user.dto.UserHomeDTO;
 import com.campushub.user.dto.UserProfileDTO;
@@ -17,6 +18,8 @@ import com.campushub.user.mapper.UserMapper;
 import com.campushub.user.mapper.UserVerificationMapper;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,6 +52,16 @@ public class UserService {
 
     public UserPublicDTO getPublicUser(Long userId) {
         return UserDtoAssembler.toUserPublic(requireActiveUser(userId));
+    }
+
+    public List<AdminUserOptionDTO> searchAdminUsers(String keyword, String role, Integer size) {
+        int limit = size == null ? 20 : Math.max(1, Math.min(size, 50));
+        String normalizedKeyword = keyword == null ? null : keyword.trim();
+        return userMapper.selectAdminUserOptions(
+                normalizedKeyword == null || normalizedKeyword.isBlank() ? null : normalizedKeyword,
+                adminRoleCode(role),
+                limit
+        );
     }
 
     public UserHomeDTO getHome(Long userId) {
@@ -199,6 +212,13 @@ public class UserService {
         return new AdminBanResultDTO(userId, "BANNED", reason);
     }
 
+    public void requireOperableUser(Long userId) {
+        User user = requireActiveUser(userId);
+        if (user.getStatus() != null && user.getStatus() == USER_STATUS_BANNED) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "账号已被封禁，无法发布或接取内容");
+        }
+    }
+
     private User requireActiveUser(Long userId) {
         if (userId == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "用户 ID 不能为空");
@@ -208,6 +228,17 @@ public class UserService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "用户不存在");
         }
         return user;
+    }
+
+    private static Integer adminRoleCode(String role) {
+        if (role == null || role.isBlank() || "ALL".equalsIgnoreCase(role.trim())) {
+            return null;
+        }
+        return switch (role.trim().toUpperCase(Locale.ROOT)) {
+            case "USER" -> 0;
+            case "ADMIN" -> 1;
+            default -> throw new BusinessException(ErrorCode.BAD_REQUEST, "不支持的用户角色");
+        };
     }
 
     private static boolean isBlank(String value) {
