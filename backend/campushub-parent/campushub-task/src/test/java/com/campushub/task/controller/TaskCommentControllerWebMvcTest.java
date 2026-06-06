@@ -60,7 +60,7 @@ class TaskCommentControllerWebMvcTest {
 
     @Test
     void listIsPublicAndWrapsComments() throws Exception {
-        when(taskCommentService.list(11L)).thenReturn(List.of(comment(21L, "hello")));
+        when(taskCommentService.list(11L, null, "time")).thenReturn(List.of(comment(21L, "hello")));
 
         mockMvc.perform(get("/api/tasks/11/comments"))
                 .andExpect(status().isOk())
@@ -69,7 +69,7 @@ class TaskCommentControllerWebMvcTest {
 
     @Test
     void createRequiresAuthentication() throws Exception {
-        TaskCommentCreateRequest request = new TaskCommentCreateRequest("hello");
+        TaskCommentCreateRequest request = new TaskCommentCreateRequest("hello", null, null);
 
         mockMvc.perform(post("/api/tasks/11/comments")
                         .contentType(APPLICATION_JSON)
@@ -83,7 +83,7 @@ class TaskCommentControllerWebMvcTest {
     @Test
     void createUsesCurrentUser() throws Exception {
         authenticate(7L, UserRole.USER);
-        TaskCommentCreateRequest request = new TaskCommentCreateRequest("hello");
+        TaskCommentCreateRequest request = new TaskCommentCreateRequest("hello", null, null);
         when(taskCommentService.create(eq(11L), eq(7L), eq(request))).thenReturn(List.of(comment(21L, "hello")));
 
         mockMvc.perform(post("/api/tasks/11/comments")
@@ -117,7 +117,12 @@ class TaskCommentControllerWebMvcTest {
                 7L,
                 "Alice",
                 null,
+                null,
+                null,
+                null,
                 content,
+                0,
+                false,
                 OffsetDateTime.parse("2026-06-05T12:00:00+08:00")
         );
     }

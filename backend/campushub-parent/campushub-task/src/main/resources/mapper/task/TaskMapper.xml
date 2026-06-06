@@ -302,6 +302,7 @@
     <select id="countTaskList" resultType="long">
         SELECT COUNT(1)
         FROM t_task t
+        JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
         WHERE t.is_deleted = false
           <if test="category != null">
             AND t.category = #{category}
@@ -407,6 +408,7 @@
         SELECT COUNT(1)
         FROM t_task_favorite tf
         JOIN t_task t ON t.id = tf.task_id AND t.is_deleted = false
+        JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
         WHERE tf.user_id = #{userId}
           <if test="category != null">
             AND t.category = #{category}
@@ -471,16 +473,19 @@
     <select id="selectTaskStats" resultType="com.campushub.task.dto.TaskStatsDTO">
         SELECT
             (SELECT COUNT(1)
-             FROM t_task
-             WHERE is_deleted = false
-               AND create_time &gt;= CURRENT_DATE) AS todayCreated,
+             FROM t_task t
+             JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
+             WHERE t.is_deleted = false
+               AND t.create_time &gt;= CURRENT_DATE) AS todayCreated,
             (SELECT COUNT(1)
-             FROM t_task
-             WHERE is_deleted = false
-               AND status = 2) AS inProgress,
+             FROM t_task t
+             JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
+             WHERE t.is_deleted = false
+               AND t.status = 2) AS inProgress,
             (SELECT COUNT(1)
-             FROM t_task
-             WHERE is_deleted = false
-               AND status = 3) AS completed
+             FROM t_task t
+             JOIN u_user u ON u.id = t.publisher_id AND u.is_deleted = false
+             WHERE t.is_deleted = false
+               AND t.status = 3) AS completed
     </select>
 </mapper>
