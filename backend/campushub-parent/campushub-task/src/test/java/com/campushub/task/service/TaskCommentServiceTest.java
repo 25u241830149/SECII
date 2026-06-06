@@ -11,6 +11,7 @@ import com.campushub.common.exception.BusinessException;
 import com.campushub.task.dto.TaskCommentCreateRequest;
 import com.campushub.task.dto.TaskCommentDTO;
 import com.campushub.task.mapper.TaskCommentMapper;
+import com.campushub.user.service.UserService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -28,15 +29,18 @@ class TaskCommentServiceTest {
     @Mock
     private TaskService taskService;
 
+    @Mock
+    private UserService userService;
+
     @InjectMocks
     private TaskCommentService taskCommentService;
 
     @Test
     void listRequiresTaskAndReturnsComments() {
         List<TaskCommentDTO> comments = List.of(comment(21L, "hello"));
-        when(taskCommentMapper.selectByTaskId(11L)).thenReturn(comments);
+        when(taskCommentMapper.selectByTaskIdOrderByTime(11L, 7L)).thenReturn(comments);
 
-        List<TaskCommentDTO> result = taskCommentService.list(11L);
+        List<TaskCommentDTO> result = taskCommentService.list(11L, 7L, "time");
 
         verify(taskService).requireTask(11L);
         assertEquals(comments, result);
@@ -45,11 +49,12 @@ class TaskCommentServiceTest {
     @Test
     void createTrimsContentAndReturnsFreshList() {
         List<TaskCommentDTO> comments = List.of(comment(21L, "hello"));
-        when(taskCommentMapper.selectByTaskId(11L)).thenReturn(comments);
+        when(taskCommentMapper.selectByTaskIdOrderByTime(11L, 7L)).thenReturn(comments);
 
-        List<TaskCommentDTO> result = taskCommentService.create(11L, 7L, new TaskCommentCreateRequest("  hello  "));
+        List<TaskCommentDTO> result = taskCommentService.create(
+                11L, 7L, new TaskCommentCreateRequest("  hello  ", null, null));
 
-        verify(taskCommentMapper).insert(11L, 7L, "hello");
+        verify(taskCommentMapper).insert(11L, 7L, null, null, "hello");
         assertEquals(comments, result);
     }
 
@@ -57,11 +62,11 @@ class TaskCommentServiceTest {
     void createRejectsBlankOrOversizedContent() {
         BusinessException blank = assertThrows(
                 BusinessException.class,
-                () -> taskCommentService.create(11L, 7L, new TaskCommentCreateRequest(" "))
+                () -> taskCommentService.create(11L, 7L, new TaskCommentCreateRequest(" ", null, null))
         );
         BusinessException oversized = assertThrows(
                 BusinessException.class,
-                () -> taskCommentService.create(11L, 7L, new TaskCommentCreateRequest("x".repeat(501)))
+                () -> taskCommentService.create(11L, 7L, new TaskCommentCreateRequest("x".repeat(501), null, null))
         );
 
         assertEquals(ErrorCode.BAD_REQUEST, blank.getCode());
@@ -108,7 +113,12 @@ class TaskCommentServiceTest {
                 7L,
                 "Alice",
                 null,
+                null,
+                null,
+                null,
                 content,
+                0,
+                false,
                 OffsetDateTime.parse("2026-06-05T12:00:00+08:00")
         );
     }
