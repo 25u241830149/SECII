@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.campushub.common.enums.UserRole;
 import com.campushub.common.exception.GlobalExceptionHandler;
-import com.campushub.common.response.PageResponse;
 import com.campushub.common.security.SecurityUtils;
 import com.campushub.report.dto.ReportCreateRequest;
 import com.campushub.report.dto.ReportDTO;

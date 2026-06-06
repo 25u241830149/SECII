@@ -15,7 +15,6 @@ import com.campushub.common.security.JwtTokenProvider;
 import com.campushub.common.testing.ContainerizedIntegrationTestSupport;
 import com.campushub.common.testing.DatabaseFixtureHelper;
 import com.campushub.common.enums.UserRole;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
