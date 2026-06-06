@@ -18,6 +18,7 @@ import com.campushub.task.entity.Task;
 import com.campushub.task.service.TaskCodecs;
 import com.campushub.task.service.TaskService;
 import com.campushub.task.service.TaskStatusService;
+import com.campushub.user.service.UserService;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,9 @@ class GrabServiceTest {
 
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
+
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private GrabService grabService;

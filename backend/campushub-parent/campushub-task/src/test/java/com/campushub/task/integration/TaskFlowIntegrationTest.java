@@ -15,6 +15,7 @@ import com.campushub.common.security.JwtTokenProvider;
 import com.campushub.common.testing.ContainerizedIntegrationTestSupport;
 import com.campushub.common.testing.DatabaseFixtureHelper;
 import com.campushub.common.enums.UserRole;
+import com.campushub.user.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -46,6 +48,9 @@ class TaskFlowIntegrationTest extends ContainerizedIntegrationTestSupport {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @MockBean
+    private UserService userService;
 
     private Long publisherId;
     private String token;

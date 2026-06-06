@@ -378,3 +378,62 @@ Swagger：http://localhost:8080/swagger-ui.html
 ```powershell
 docker compose down
 ```
+
+## 测试说明
+
+### 前端
+
+```powershell
+cd frontend
+npm.cmd install
+npm.cmd run test:run
+npm.cmd run test:coverage
+```
+
+覆盖率报告输出到：
+
+```text
+frontend/coverage/
+```
+
+### 后端
+
+```powershell
+cd backend/campushub-parent
+
+# 全量测试
+mvn -q test
+
+# 仅单元测试
+mvn -q "-Dtest=!*IntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false" test
+
+# 仅集成测试
+mvn -q "-Dtest=*IntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false" test
+```
+
+如果本地不使用 Testcontainers，而是连接外部 PostgreSQL / Redis：
+
+```powershell
+$env:CAMPUSHUB_TESTCONTAINERS_ENABLED="false"
+$env:CAMPUSHUB_TEST_DATASOURCE_URL="jdbc:postgresql://localhost:5432/campushub_test"
+$env:CAMPUSHUB_TEST_DATASOURCE_USERNAME="postgres"
+$env:CAMPUSHUB_TEST_DATASOURCE_PASSWORD="postgres"
+$env:CAMPUSHUB_TEST_REDIS_HOST="localhost"
+$env:CAMPUSHUB_TEST_REDIS_PORT="6379"
+$env:CAMPUSHUB_TEST_REDIS_DATABASE="0"
+$env:CAMPUSHUB_TEST_REDISSON_ADDRESS="redis://localhost:6379"
+
+mvn -q "-Dtest=*IntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false" "-Dcampushub.testcontainers.enabled=false" test
+```
+
+### CI
+
+```text
+.gitlab/backend.yml
+.gitlab/frontend.yml
+```
+
+当前 CI 会执行：
+
+- 前端：`npm run test:coverage`、`npm exec vue-tsc -- --noEmit`、`npm run build`
+- 后端：单元测试、集成测试、打包构建

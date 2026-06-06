@@ -27,6 +27,9 @@ class NoticeServiceTest {
     @Mock
     private NoticeMapper noticeMapper;
 
+    @Mock
+    private MessageService messageService;
+
     @InjectMocks
     private NoticeService noticeService;
 

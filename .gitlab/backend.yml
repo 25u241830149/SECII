@@ -49,13 +49,25 @@ backend_integration_test:
   stage: integration_test
   image: maven:3.9.9-eclipse-temurin-17
   services:
-    - name: docker:27-dind
-      alias: docker
+    - name: postgis/postgis:16-3.4
+      alias: postgres
+    - name: redis:7-alpine
+      alias: redis
   variables:
-    DOCKER_HOST: "tcp://docker:2375"
-    DOCKER_TLS_CERTDIR: ""
-    TESTCONTAINERS_RYUK_DISABLED: "true"
+    POSTGRES_DB: "campushub_test"
+    POSTGRES_USER: "postgres"
+    POSTGRES_PASSWORD: "postgres"
+    CAMPUSHUB_TESTCONTAINERS_ENABLED: "false"
+    CAMPUSHUB_TEST_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/campushub_test"
+    CAMPUSHUB_TEST_DATASOURCE_USERNAME: "postgres"
+    CAMPUSHUB_TEST_DATASOURCE_PASSWORD: "postgres"
+    CAMPUSHUB_TEST_REDIS_HOST: "redis"
+    CAMPUSHUB_TEST_REDIS_PORT: "6379"
+    CAMPUSHUB_TEST_REDIS_DATABASE: "0"
+    CAMPUSHUB_TEST_REDISSON_ADDRESS: "redis://redis:6379"
   script:
+    - bash -lc 'for i in {1..60}; do (echo > /dev/tcp/postgres/5432) >/dev/null 2>&1 && break; sleep 2; done'
+    - bash -lc 'for i in {1..60}; do (echo > /dev/tcp/redis/6379) >/dev/null 2>&1 && break; sleep 2; done'
     - mvn $MAVEN_CLI_OPTS "-Dmaven.repo.local=$MAVEN_REPO_LOCAL" -f "$BACKEND_DIR/pom.xml" "-Dtest=*IntegrationTest" "-Dsurefire.failIfNoSpecifiedTests=false" "-DfailIfNoTests=false" test
   artifacts:
     when: always

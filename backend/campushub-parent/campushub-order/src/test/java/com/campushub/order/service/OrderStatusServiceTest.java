@@ -21,6 +21,7 @@ import com.campushub.task.service.TaskCodecs;
 import com.campushub.task.service.TaskService;
 import com.campushub.task.service.TaskStatusService;
 import com.campushub.user.service.CreditService;
+import com.campushub.user.service.UserService;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -51,6 +52,9 @@ class OrderStatusServiceTest {
 
     @Mock
     private CreditService creditService;
+
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private OrderStatusService orderStatusService;
