@@ -3,7 +3,7 @@
     <header class="page-head">
       <div>
         <h1>我的接单</h1>
-        <p>这里展示当前账号作为帮手参与的订单，状态来自 Sprint2 订单接口。</p>
+        <p>当前账号作为帮手参与的订单</p>
       </div>
     </header>
 
@@ -82,16 +82,28 @@ onMounted(loadOrders)
 <style scoped>
 .profile-page {
   display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 16px;
 }
 
 .page-head,
 .panel {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
   padding: 22px;
   border: 1px solid #e7edf7;
   border-radius: 24px;
   background: #fff;
   box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+}
+
+.panel :deep(.el-skeleton) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .page-head h1,
@@ -107,6 +119,22 @@ onMounted(loadOrders)
 .order-list {
   display: grid;
   gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.order-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.order-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.order-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .order-row {
@@ -114,7 +142,7 @@ onMounted(loadOrders)
   grid-template-columns: minmax(0, 1fr) 120px 110px 100px;
   gap: 16px;
   align-items: center;
-  padding: 18px;
+  padding: 14px 16px;
   border: 1px solid #edf2f7;
   border-radius: 18px;
 }
@@ -123,6 +151,9 @@ onMounted(loadOrders)
 .main p,
 .main small {
   margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .main p,
@@ -139,6 +170,7 @@ onMounted(loadOrders)
 }
 
 .pager {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;

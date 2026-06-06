@@ -8,7 +8,7 @@
         <div>
           <div class="name-line">
             <h1>{{ displayName }}</h1>
-            <span>{{ creditLevel }} 可信用户</span>
+            <span>{{ creditLevel }}</span>
           </div>
           <p>学号：{{ authStore.user?.studentId || '-' }} <b></b> {{ authStore.user?.role || 'USER' }}</p>
           <p class="bio">{{ authStore.user?.department || userStore.home?.nickname || '校园互助用户' }}</p>
@@ -28,7 +28,6 @@
         <div>
           <span>信用等级</span>
           <strong>{{ creditLevel }}</strong>
-          <small>可信用户</small>
         </div>
       </div>
     </section>
@@ -249,9 +248,10 @@ onMounted(async () => {
 
 .name-line {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
 .name-line h1 {
@@ -266,8 +266,9 @@ onMounted(async () => {
   border-radius: 6px;
   background: #dbeafe;
   color: #2563eb;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .identity p {
@@ -296,7 +297,7 @@ onMounted(async () => {
 
 .credit-panel {
   display: grid;
-  grid-template-columns: 1fr 110px 1fr;
+  grid-template-columns: minmax(76px, 0.9fr) 104px minmax(140px, 1.25fr);
   align-items: center;
   padding: 28px;
   border-radius: 8px;
@@ -305,7 +306,7 @@ onMounted(async () => {
   text-align: center;
 }
 
-.credit-panel > div + div {
+.credit-panel > div:last-child {
   border-left: 1px solid #dbe3f0;
 }
 
@@ -322,6 +323,11 @@ onMounted(async () => {
   line-height: 1;
 }
 
+.credit-panel > div:last-child strong {
+  font-size: 30px;
+  white-space: nowrap;
+}
+
 .credit-panel small {
   display: block;
   margin-top: 8px;
@@ -331,15 +337,16 @@ onMounted(async () => {
 
 .medal {
   display: grid;
-  width: 84px;
-  height: 84px;
+  width: 92px;
+  height: 92px;
+  box-sizing: border-box;
   place-items: center;
   margin: 0 auto;
-  border: 8px solid #bcd3ff;
+  border: 9px solid #bcd3ff;
   border-radius: 50%;
   background: linear-gradient(135deg, #82a9ff, #4f77de);
   color: #fff;
-  font-size: 36px;
+  font-size: 40px;
   box-shadow: 0 12px 24px rgba(79, 119, 222, 0.28);
 }
 

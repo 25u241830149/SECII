@@ -5,19 +5,18 @@
         <h2>评论区</h2>
         <p>公开讨论需求细节，便于参与者提前沟通。</p>
       </div>
-      <strong>共 {{ totalCount }} 条评论</strong>
-    </header>
-
-    <div class="comment-toolbar">
-      <div class="sort-tabs" aria-label="评论排序">
-        <button :class="{ active: sortMode === 'likes' }" type="button" @click="sortMode = 'likes'">
-          按赞数
-        </button>
-        <button :class="{ active: sortMode === 'time' }" type="button" @click="sortMode = 'time'">
-          按时间
-        </button>
+      <div class="comments-head-actions">
+        <strong>共 {{ totalCount }} 条评论</strong>
+        <div class="sort-tabs" aria-label="评论排序">
+          <button :class="{ active: sortMode === 'likes' }" type="button" @click="sortMode = 'likes'">
+            按赞数
+          </button>
+          <button :class="{ active: sortMode === 'time' }" type="button" @click="sortMode = 'time'">
+            按时间
+          </button>
+        </div>
       </div>
-    </div>
+    </header>
 
     <div v-if="authStore.isAuthenticated" class="composer">
       <el-avatar :size="42" :src="currentAvatar || undefined" class="composer-avatar">
@@ -336,18 +335,17 @@ onMounted(load)
 .comments {
   display: grid;
   box-sizing: border-box;
-  height: 430px;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-  gap: 14px;
-  padding: 22px;
+  height: 560px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 18px 22px;
   border: 1px solid #e7edf7;
-  border-radius: 8px;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, .07);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .05);
 }
 
 .comments-header,
-.comment-toolbar,
 .composer,
 .comment-item,
 .comment-meta,
@@ -356,9 +354,9 @@ onMounted(load)
 }
 
 .comments-header {
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
 }
 
 h2,
@@ -367,7 +365,7 @@ p {
 }
 
 .comments-header h2 {
-  font-size: 26px;
+  font-size: 22px;
   color: #0f172a;
 }
 
@@ -380,34 +378,38 @@ time,
 }
 
 .comments-header p {
-  margin-top: 4px;
-  font-size: 14px;
+  margin-top: 2px;
+  font-size: 13px;
+}
+
+.comments-head-actions {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 12px;
 }
 
 .comments-header strong {
   white-space: nowrap;
-  font-size: 16px;
-}
-
-.comment-toolbar {
-  justify-content: flex-end;
+  font-size: 14px;
 }
 
 .sort-tabs {
   display: inline-flex;
-  padding: 4px;
+  padding: 2px;
   border-radius: 999px;
   background: #f1f5f9;
 }
 
 .sort-tabs button {
-  min-width: 76px;
+  min-width: 58px;
   border: 0;
   border-radius: 999px;
-  padding: 8px 14px;
+  padding: 5px 10px;
   background: transparent;
   color: #475569;
   font: inherit;
+  font-size: 13px;
   cursor: pointer;
 }
 
@@ -415,14 +417,14 @@ time,
   background: #fff;
   color: #0f172a;
   font-weight: 700;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, .08);
+  box-shadow: 0 3px 10px rgba(15, 23, 42, .08);
 }
 
 .composer {
   align-items: flex-end;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 18px;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
   background: #f8fafc;
 }
 
@@ -436,7 +438,8 @@ time,
 }
 
 .composer :deep(.el-textarea__inner) {
-  border-radius: 16px;
+  min-height: 46px !important;
+  border-radius: 12px;
   background: #fff;
 }
 
@@ -474,7 +477,7 @@ time,
   display: grid;
   min-height: 0;
   align-content: start;
-  gap: 16px;
+  gap: 12px;
   overflow-y: auto;
   padding-right: 8px;
   scrollbar-gutter: stable;
@@ -491,8 +494,8 @@ time,
 
 .comment-thread {
   display: grid;
-  gap: 12px;
-  padding-top: 16px;
+  gap: 10px;
+  padding-top: 12px;
   border-top: 1px solid #edf2f7;
 }
 
@@ -545,17 +548,17 @@ time {
 }
 
 .comment-content {
-  margin-top: 8px;
+  margin-top: 6px;
   color: #334155;
-  line-height: 1.8;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .comment-actions {
   align-items: center;
-  gap: 18px;
-  margin-top: 8px;
+  gap: 16px;
+  margin-top: 6px;
 }
 
 .comment-actions button {
@@ -573,10 +576,10 @@ time {
 
 .reply-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   margin-left: 54px;
-  padding: 12px;
-  border-radius: 16px;
+  padding: 10px;
+  border-radius: 12px;
   background: #f8fafc;
 }
 
@@ -587,7 +590,18 @@ time {
 
 @media (max-width: 900px) {
   .comments {
-    height: 520px;
+    height: 560px;
+    padding: 16px;
+  }
+
+  .comments-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .comments-head-actions {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .composer {

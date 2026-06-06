@@ -398,6 +398,7 @@ const saveProfile = async () => {
 <style scoped>
 .profile-page {
   display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.75fr);
   gap: 18px;
 }
 
@@ -410,6 +411,7 @@ const saveProfile = async () => {
 }
 
 .page-header {
+  grid-column: 1 / -1;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -441,12 +443,25 @@ const saveProfile = async () => {
 }
 
 .profile-card {
-  max-width: 760px;
+  min-width: 0;
+  max-width: none;
+}
+
+.profile-card:not(.security-card) {
+  grid-column: 1;
+}
+
+.security-card {
+  grid-column: 2;
+  align-self: start;
+  min-height: 220px;
 }
 
 .security-card header {
   display: flex;
-  align-items: center;
+  min-height: 172px;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
 }
@@ -468,6 +483,7 @@ const saveProfile = async () => {
 
 .security-card :deep(.el-button) {
   flex: 0 0 auto;
+  width: 100%;
 }
 
 .password-form {
@@ -561,6 +577,15 @@ const saveProfile = async () => {
 }
 
 @media (max-width: 720px) {
+  .profile-page {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-card:not(.security-card),
+  .security-card {
+    grid-column: auto;
+  }
+
   .page-header {
     flex-direction: column;
   }

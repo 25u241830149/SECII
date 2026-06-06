@@ -41,6 +41,11 @@ export interface AdminUserOptionDTO {
   role: 'USER' | 'ADMIN'
   status: 'NORMAL' | 'PENDING_VERIFICATION' | 'BANNED'
   creditScore: number
+  verificationRealName?: string | null
+  verificationStatus?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED' | null
+  verificationStudentCardImage?: string | null
+  verificationRemark?: string | null
+  verificationSubmittedAt?: string | null
 }
 
 export function searchAdminUsers(params: { keyword?: string; role?: AdminUserRole; size?: number } = {}) {

@@ -6,6 +6,11 @@ public record AdminUserOptionDTO(
         String nickname,
         String role,
         String status,
-        Integer creditScore
+        Integer creditScore,
+        String verificationRealName,
+        String verificationStatus,
+        String verificationStudentCardImage,
+        String verificationRemark,
+        String verificationSubmittedAt
 ) {
 }

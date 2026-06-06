@@ -79,6 +79,31 @@
           <el-form-item label="当前用户">
             <el-input :model-value="selectedUserLabel" disabled />
           </el-form-item>
+          <div class="verification-material">
+            <header>
+              <h4>认证材料</h4>
+              <span :class="['verify-tag', selectedVerificationStatusClass]">
+                {{ selectedVerificationStatusLabel }}
+              </span>
+            </header>
+            <div v-if="selectedUser" class="material-grid">
+              <div class="material-info">
+                <p><span>实名</span><strong>{{ selectedUser.verificationRealName || '未提交' }}</strong></p>
+                <p><span>提交时间</span><strong>{{ formatDate(selectedUser.verificationSubmittedAt) }}</strong></p>
+                <p v-if="selectedUser.verificationRemark"><span>备注</span><strong>{{ selectedUser.verificationRemark }}</strong></p>
+              </div>
+              <el-image
+                v-if="selectedUser.verificationStudentCardImage"
+                class="material-image"
+                :src="resolveAssetUrl(selectedUser.verificationStudentCardImage)"
+                :preview-src-list="[resolveAssetUrl(selectedUser.verificationStudentCardImage)]"
+                fit="cover"
+                preview-teleported
+              />
+              <div v-else class="material-empty">暂无学生证图片</div>
+            </div>
+            <el-empty v-else description="请先选择用户" :image-size="72" />
+          </div>
           <el-form-item label="审核结果">
             <el-radio-group v-model="verifyForm.approved">
               <el-radio-button :label="true">通过</el-radio-button>
@@ -101,6 +126,7 @@ import { ElMessage } from 'element-plus'
 
 import { banUser, searchAdminUsers, verifyUser } from '@/api/admin'
 import type { AdminUserOptionDTO, AdminUserRole } from '@/api/admin'
+import { resolveAssetUrl } from '@/utils/asset'
 
 const banSubmitting = ref(false)
 const verifySubmitting = ref(false)
@@ -131,13 +157,30 @@ const statusLabels: Record<AdminUserOptionDTO['status'], string> = {
   BANNED: '已封禁',
 }
 
+const verificationStatusLabels: Record<NonNullable<AdminUserOptionDTO['verificationStatus']>, string> = {
+  NONE: '未提交',
+  PENDING: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已驳回',
+}
+
 const selectedUser = computed(() => users.value.find((user) => user.userId === selectedUserId.value) || null)
 const selectedUserLabel = computed(() =>
   selectedUser.value ? `${selectedUser.value.nickname}（${selectedUser.value.studentId} / #${selectedUser.value.userId}）` : '请先选择用户',
 )
+const selectedVerificationStatus = computed(() => selectedUser.value?.verificationStatus || 'NONE')
+const selectedVerificationStatusLabel = computed(() => verificationStatusLabels[selectedVerificationStatus.value])
+const selectedVerificationStatusClass = computed(() => selectedVerificationStatus.value.toLowerCase())
 
 const formatUserLabel = (user: AdminUserOptionDTO) =>
   `${user.nickname} / ${user.studentId} / #${user.userId} / ${roleLabels[user.role]}`
+
+const formatDate = (value?: string | null) => {
+  if (!value) return '未提交'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value.replace('T', ' ').slice(0, 16)
+  return date.toLocaleString('zh-CN', { hour12: false })
+}
 
 const loadUsers = async (keyword = '') => {
   searchKeyword.value = keyword
@@ -295,6 +338,110 @@ onMounted(() => loadUsers())
   color: #f97316;
 }
 
+.verification-material {
+  display: grid;
+  gap: 12px;
+  margin: 4px 0 18px;
+  padding: 14px;
+  border: 1px solid #e7edf7;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.verification-material header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+}
+
+.verification-material h4 {
+  margin: 0;
+  color: #111827;
+  font-size: 16px;
+}
+
+.verify-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #eef5ff;
+  color: #1268ed;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.verify-tag.none {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.verify-tag.pending {
+  background: #fff7ed;
+  color: #f97316;
+}
+
+.verify-tag.approved {
+  background: #ecfdf3;
+  color: #16a34a;
+}
+
+.verify-tag.rejected {
+  background: #fff1f2;
+  color: #ef4444;
+}
+
+.material-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.material-info {
+  display: grid;
+  gap: 8px;
+}
+
+.material-info p {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+}
+
+.material-info span {
+  color: #64748b;
+}
+
+.material-info strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #111827;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-image,
+.material-empty {
+  width: 180px;
+  height: 126px;
+  border-radius: 8px;
+}
+
+.material-image {
+  border: 1px solid #dbe6f4;
+  background: #fff;
+}
+
+.material-empty {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #cbd5e1;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
 @media (max-width: 900px) {
   .operation-grid {
     grid-template-columns: 1fr;
@@ -302,6 +449,15 @@ onMounted(() => loadUsers())
 
   .picker-controls {
     grid-template-columns: 1fr;
+  }
+
+  .material-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .material-image,
+  .material-empty {
+    width: 100%;
   }
 }
 </style>

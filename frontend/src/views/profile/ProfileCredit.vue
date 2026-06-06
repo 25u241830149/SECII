@@ -210,7 +210,7 @@ onMounted(async () => {
 
 .credit-hero {
   display: grid;
-  grid-template-columns: 160px 150px 160px minmax(0, 1fr);
+  grid-template-columns: 150px 130px minmax(160px, 190px) minmax(0, 1fr);
   gap: 24px;
   align-items: center;
   padding: 30px 90px;
@@ -230,8 +230,13 @@ onMounted(async () => {
   display: block;
   margin: 10px 0;
   color: #4169e1;
-  font-size: 46px;
+  font-size: 44px;
   line-height: 1;
+}
+
+.credit-hero > div:nth-of-type(3) strong {
+  font-size: 40px;
+  white-space: nowrap;
 }
 
 .credit-hero p {
@@ -243,9 +248,10 @@ onMounted(async () => {
   display: grid;
   width: 92px;
   height: 92px;
+  box-sizing: border-box;
   place-items: center;
   margin: 0 auto;
-  border: 8px solid #bcd3ff;
+  border: 9px solid #bcd3ff;
   border-radius: 50%;
   background: linear-gradient(135deg, #82a9ff, #4f77de);
   color: #fff;

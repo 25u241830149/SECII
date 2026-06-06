@@ -144,14 +144,14 @@ onMounted(loadMessages)
 .chat-panel {
   display: grid;
   box-sizing: border-box;
-  height: 430px;
+  height: 560px;
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 14px;
-  padding: 22px;
+  padding: 18px 22px;
   border: 1px solid #e7edf7;
-  border-radius: 8px;
+  border-radius: 14px;
   background: #fff;
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 }
 
 .chat-panel :deep(.el-skeleton),
