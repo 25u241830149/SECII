@@ -10,21 +10,21 @@
     <article class="panel">
       <el-skeleton :loading="loading" animated :rows="6">
         <template #default>
-          <el-empty v-if="!orders.length" description="还没有发布任何任务" />
+          <el-empty v-if="!tasks.length" description="还没有发布任何任务" />
           <div v-else class="task-list">
             <article
-              v-for="order in orders"
-              :key="order.orderId"
+              v-for="item in tasks"
+              :key="item.task.taskId"
               class="order-row"
             >
               <div class="main">
-                <h2>{{ order.taskTitle }}</h2>
-                <p>{{ taskCategoryLabels[order.taskCategory] }} · {{ order.taskLocation || '校内待定地点' }}</p>
-                <small>帮手：{{ order.helperName || '暂无帮手' }}</small>
+                <h2>{{ item.task.title }}</h2>
+                <p>{{ taskCategoryLabels[item.task.category] }} · {{ item.task.location || '校内待定地点' }}</p>
+                <small>{{ item.meta }}</small>
               </div>
-              <div class="price">¥{{ Number(order.reward).toFixed(2) }}</div>
-              <OrderStatusBadge :status="order.status" />
-              <el-button @click="router.push(`/orders/${order.orderId}`)">查看详情</el-button>
+              <div class="price">{{ formatReward(item.task) }}</div>
+              <OrderStatusBadge :status="item.badgeStatus" :label="taskStatusLabels[item.task.status]" :tone-override="item.tone" />
+              <el-button @click="router.push(item.detailPath)">查看详情</el-button>
             </article>
           </div>
         </template>
@@ -49,32 +49,94 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getOrders } from '@/api/order'
+import { getPublishedTasks } from '@/api/task'
 import OrderStatusBadge from '@/components/OrderStatusBadge.vue'
 import { useAuthStore } from '@/stores'
-import { taskCategoryLabels } from '@/types'
-import type { OrderListDTO } from '@/types'
+import { taskCategoryLabels, taskStatusLabels } from '@/types'
+import type { OrderListDTO, OrderStatus, TaskListDTO, TaskStatus } from '@/types'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const loading = ref(false)
-const orders = ref<OrderListDTO[]>([])
+const tasks = ref<PublishedItem[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = 6
+
+interface PublishedItem {
+  task: TaskListDTO
+  meta: string
+  detailPath: string
+  badgeStatus: OrderStatus
+  tone: 'orange' | 'green' | 'blue' | 'red' | 'purple'
+}
+
+const formatReward = (task: TaskListDTO) => {
+  if (task.category === 'TEAM_UP') return '组队'
+  const reward = Number(task.reward)
+  if (Number.isNaN(reward)) return String(task.reward || '无偿')
+  if (reward === 0) return '无偿'
+  return `¥${reward.toFixed(2)}`
+}
+
+const badgeByTaskStatus = (status: TaskStatus): Pick<PublishedItem, 'badgeStatus' | 'tone'> => {
+  switch (status) {
+    case 'COMPLETED':
+      return { badgeStatus: 'COMPLETED', tone: 'blue' }
+    case 'CANCELLED':
+    case 'OFFLINE':
+      return { badgeStatus: 'CANCELLED', tone: 'red' }
+    case 'IN_PROGRESS':
+      return { badgeStatus: 'CONFIRMED', tone: 'green' }
+    default:
+      return { badgeStatus: 'PENDING', tone: 'orange' }
+  }
+}
+
+const resolveOrderByTask = (orders: OrderListDTO[]) => {
+  const map = new Map<number, OrderListDTO>()
+  orders.forEach((order) => {
+    if (!map.has(order.taskId)) {
+      map.set(order.taskId, order)
+    }
+  })
+  return map
+}
+
+const toPublishedItem = (task: TaskListDTO, order?: OrderListDTO): PublishedItem => {
+  const badge = badgeByTaskStatus(task.status)
+  const teamMeta = task.category === 'TEAM_UP'
+    ? `组队进度：${task.teamCurrentMembers ?? 0}/${task.teamTotalMembers ?? 0}人`
+    : '发布需求'
+  return {
+    task,
+    detailPath: order ? `/orders/${order.orderId}` : `/tasks/${task.taskId}`,
+    meta: order?.helperName ? `帮手：${order.helperName}` : teamMeta,
+    ...badge,
+  }
+}
 
 const loadTasks = async () => {
   if (!authStore.user) return
   loading.value = true
   try {
-    const result = await getOrders({
-      userId: authStore.user.userId,
-      role: 'poster',
-      page: page.value,
-      size: pageSize,
-    })
-    orders.value = result.records
-    total.value = result.total
+    const [taskResult, orderResult] = await Promise.all([
+      getPublishedTasks({
+        userId: authStore.user.userId,
+        page: page.value,
+        size: pageSize,
+      }),
+      getOrders({
+        userId: authStore.user.userId,
+        role: 'poster',
+        page: 1,
+        size: 50,
+      }),
+    ])
+    const orderByTask = resolveOrderByTask(orderResult.records)
+    tasks.value = taskResult.records.map((task) => toPublishedItem(task, orderByTask.get(task.taskId)))
+    total.value = taskResult.total
   } finally {
     loading.value = false
   }

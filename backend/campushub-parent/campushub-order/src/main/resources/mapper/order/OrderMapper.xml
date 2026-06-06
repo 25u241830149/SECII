@@ -197,6 +197,8 @@
         SELECT COUNT(1)
         FROM t_order o
         JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+        JOIN u_user poster ON poster.id = o.poster_id AND poster.is_deleted = false
+        JOIN u_user helper ON helper.id = o.helper_id AND helper.is_deleted = false
         WHERE o.is_deleted = false
           <choose>
             <when test="role == 'poster'">
@@ -222,6 +224,8 @@
             (SELECT COUNT(1)
              FROM t_order o
              JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+             JOIN u_user poster ON poster.id = o.poster_id AND poster.is_deleted = false
+             JOIN u_user helper ON helper.id = o.helper_id AND helper.is_deleted = false
              WHERE o.is_deleted = false
                AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
                AND o.status = 0
@@ -229,6 +233,8 @@
             ((SELECT COUNT(1)
              FROM t_order o
              JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+             JOIN u_user poster ON poster.id = o.poster_id AND poster.is_deleted = false
+             JOIN u_user helper ON helper.id = o.helper_id AND helper.is_deleted = false
              WHERE o.is_deleted = false
                AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
                AND o.status = 1
@@ -244,6 +250,8 @@
             (SELECT COUNT(1)
              FROM t_order o
              JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+             JOIN u_user poster ON poster.id = o.poster_id AND poster.is_deleted = false
+             JOIN u_user helper ON helper.id = o.helper_id AND helper.is_deleted = false
              WHERE o.is_deleted = false
                AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
                AND o.status = 2
@@ -256,6 +264,8 @@
             ((SELECT COUNT(1)
               FROM t_order o
               JOIN t_task t ON t.id = o.task_id AND t.is_deleted = false
+              JOIN u_user poster ON poster.id = o.poster_id AND poster.is_deleted = false
+              JOIN u_user helper ON helper.id = o.helper_id AND helper.is_deleted = false
               WHERE o.is_deleted = false
                 AND (o.poster_id = #{userId} OR o.helper_id = #{userId})
                 AND o.status = 2

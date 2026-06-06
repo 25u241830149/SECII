@@ -281,16 +281,16 @@ onMounted(async () => {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: minmax(230px, 1.18fr) minmax(230px, 1.18fr) repeat(3, minmax(170px, 1fr));
   gap: 18px;
 }
 
 .metric-grid article {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   min-height: 88px;
-  padding: 18px 22px;
+  padding: 18px 20px;
 }
 
 .metric-icon {
@@ -343,6 +343,7 @@ onMounted(async () => {
   margin-top: 4px;
   color: #35a968;
   font-style: normal;
+  white-space: nowrap;
 }
 
 .credit-columns {

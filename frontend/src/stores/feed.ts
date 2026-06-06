@@ -67,7 +67,9 @@ export const useFeedStore = defineStore('feed', {
           excludeCompleted: true,
         })
         this.tasks = result.records
-        this.total = result.total
+
+        const loadedTotal = (this.page - 1) * this.size + result.records.length
+        this.total = result.records.length < this.size ? loadedTotal : Math.max(result.total, loadedTotal)
       } finally {
         this.loading = false
       }
