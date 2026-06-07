@@ -172,6 +172,115 @@ reject deletion when the user still has unfinished orders
 - `02-可运行系统代码说明.md` 和 `09-演示说明.md` 已将账号注销列为已知限制。
 - 主演示路径仍覆盖注册、登录、发布、抢单、订单完成、评价、消息和信用，不依赖账号注销。
 
+## Bug 6：登录学号前后空格导致误判为账号不存在
+
+### 现象
+
+在“AI 代码信任度实验”和“AI 调试对决”中复核 `AuthService.login` 时发现，AI 直出的登录校验代码直接使用原始学号查询：
+
+```java
+User user = userMapper.selectActiveByStudentId(request.studentId());
+```
+
+当用户输入 `" 20260001 "` 这类带前后空格的学号时，`validateLoginRequest` 不会判定为空，但数据库会按带空格的字符串精确匹配，导致真实存在的用户被误判为“学号或密码错误”。
+
+### 根因分析
+
+`validateLoginRequest` 只负责校验 `request`、`studentId`、`password` 是否为空或全空格，未对可接受输入做规范化。`UserMapper.xml` 中 `selectActiveByStudentId` 使用：
+
+```sql
+WHERE student_id = #{studentId}
+  AND is_deleted = false
+```
+
+因此学号两端空格会参与精确匹配。该问题属于常见输入边界处理不足。
+
+### 修复方案
+
+修改 `backend/campushub-parent/campushub-user/src/main/java/com/campushub/user/service/AuthService.java`，在查询前规整学号：
+
+```diff
+ public LoginResponseDTO login(LoginRequest request) {
+     validateLoginRequest(request);
+-    User user = userMapper.selectActiveByStudentId(request.studentId());
++    String studentId = request.studentId().trim();
++    User user = userMapper.selectActiveByStudentId(studentId);
+     if (user == null) {
+         throw new BusinessException(ErrorCode.UNAUTHORIZED, "学号或密码错误");
+     }
+```
+
+密码字段未做 `trim()`，避免改变用户真实密码语义。
+
+### 验证结果
+
+执行：
+
+```powershell
+cd backend/campushub-parent
+mvn -pl campushub-user -am '-Dtest=AuthServiceTest,AuthControllerTest,AuthControllerWebMvcTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+```
+
+结果：
+
+- `AuthControllerTest`：2 个用例通过
+- `AuthControllerWebMvcTest`：3 个用例通过
+- `AuthServiceTest`：9 个用例通过
+- 合计 14 个用例通过，0 failures，0 errors
+
+## Bug 7：PowerShell/Maven 多模块测试命令失败
+
+### 现象
+
+运行登录相关现有测试时，第一次执行：
+
+```powershell
+cd backend/campushub-parent
+mvn -pl campushub-user -am -Dtest=AuthServiceTest,AuthControllerTest,AuthControllerWebMvcTest -Dit.test=AuthFlowIntegrationTest test
+```
+
+PowerShell 直接报错：
+
+```text
+参数列表中缺少参量。
+```
+
+将 `-Dtest` 参数加引号后，Maven 继续失败：
+
+```text
+No tests matching pattern "AuthServiceTest, AuthControllerTest, AuthControllerWebMvcTest" were executed!
+```
+
+失败模块为 `campushub-common`。
+
+### 根因分析
+
+该问题包含两层原因：
+
+1. PowerShell 会特殊解析未加引号的逗号分隔参数，导致 `-Dtest=AuthServiceTest,AuthControllerTest,...` 被错误拆分。
+2. `-pl campushub-user -am` 会同时构建依赖模块 `campushub-common`，但指定的登录测试类只存在于 `campushub-user`。公共模块没有匹配测试时，Surefire 默认中断构建。
+
+### 修复方案
+
+将 `-Dtest` 整体加引号，并允许依赖模块没有匹配的指定测试：
+
+```powershell
+mvn -pl campushub-user -am '-Dtest=AuthServiceTest,AuthControllerTest,AuthControllerWebMvcTest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+```
+
+补充说明：`AuthFlowIntegrationTest` 依赖 Testcontainers/Docker，当前运行环境报 `Could not find a valid Docker environment`，因此该集成测试失败记录为环境限制，不作为本次代码修复对象。
+
+### 验证结果
+
+最终命令执行成功：
+
+```text
+Tests run: 14, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+该命令已同步写入 `07-AI调试对决实验报告.md`，作为 Bug 2 的最终验证命令。
+
 ## 演示前检查清单
 
 - 使用 `npm.cmd`，避免 Windows PowerShell 执行策略拦截 `npm.ps1`。
@@ -179,7 +288,3 @@ reject deletion when the user still has unfinished orders
 - 不要在同一工作区并行运行多个 Maven 构建。
 - 演示前确认 Docker Desktop、PostGIS、Redis、前端 5173 和后端 8080 均可用。
 - GitLab 提交后补一次真实 Pipeline 页面截图或链接。
-
-## 结论
-
-本次 P4 修复重点是测试断言、文档事实、覆盖率证据和演示边界。所有能在当前仓库内直接修正的问题已经修正；账号注销未完成订单校验和 GitLab 页面运行记录属于仍需后续人工或代码补充的问题。
