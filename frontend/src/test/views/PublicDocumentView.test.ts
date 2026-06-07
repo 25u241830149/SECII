@@ -95,7 +95,7 @@ describe('PublicDocumentView', () => {
     expect(wrapper.find('.help-manual-sidebar').exists()).toBe(true)
     expect(wrapper.find('.help-manual-hero--auth-surface').exists()).toBe(true)
     expect(wrapper.find('.help-manual-hero-illustration').exists()).toBe(true)
-    expect(wrapper.findAll('.help-toc-link')).toHaveLength(10)
+    expect(wrapper.findAll('.help-toc-link')).toHaveLength(14)
     expect(wrapper.text()).toContain('帮助中心')
     expect(wrapper.text()).toContain('常见问题')
     expect(wrapper.text()).toContain('返回登录')
@@ -125,6 +125,6 @@ describe('PublicDocumentView', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.query.dialog).toBe('terms-of-service')
-    expect(wrapper.text()).toContain('平台使用规则与双方责任说明')
+    expect(wrapper.text()).toContain('用户服务协议')
   })
 })

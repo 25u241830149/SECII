@@ -6,8 +6,9 @@
 
 当前代码进度：
 
-- 后端已完成 `B1.1-B1.10`：Maven 多模块骨架、数据库脚本、common 基础配置、异常处理、统一响应、枚举、JWT、安全工具、通用工具类、敏感词过滤骨架、bootstrap 启动类与配置文件。
-- 前端已完成 `F1.1`：Vue 3 + Vite + TypeScript 脚手架，已安装 Element Plus、Pinia、Axios、Vue Router。
+- 后端已形成 P4 可运行版本：Maven 多模块、PostgreSQL/PostGIS 建表脚本、Redis/Redisson、JWT + Spring Security、统一响应与异常处理，以及用户、任务、订单、评价、举报、消息、公告和管理后台接口。
+- 前端已形成 P4 可演示版本：Vue 3 + Vite + TypeScript 工程，包含登录注册、首页任务广场、任务发布/详情、订单列表/详情、评价、消息中心、个人中心、举报与管理后台页面。
+- 论坛模块目前保留后端模块与数据库表设计，尚未作为 P4 主演示功能实现。
 
 ## 团队成员
 
@@ -49,11 +50,11 @@
 ## 项目结构
 
 ```text
-SECII/
+CampusHub/
 ├── backend/
 │   └── campushub-parent/
 │       ├── campushub-common/      # 公共配置、异常、响应、枚举、安全、工具、敏感词过滤
-│       ├── campushub-user/        # 用户模块，后续 B1.11 起开发
+│       ├── campushub-user/        # 注册登录、资料、信用、实名认证、后台用户管理
 │       ├── campushub-task/        # 任务模块
 │       ├── campushub-order/       # 订单模块
 │       ├── campushub-review/      # 评价模块
@@ -128,7 +129,7 @@ psql -U postgres -d secii_db -f backend/campushub-parent/campushub-bootstrap/src
 说明：
 
 - `schema.sql` 中包含 PostGIS / pg_trgm 扩展启用、业务表、索引和管理员种子数据。
-- 当前开发环境配置了 `spring.sql.init.mode=never`，后端启动时不会自动执行建表脚本，避免重复初始化。
+- 当前开发环境配置了 `spring.sql.init.mode=always`，后端启动时会按 `application-dev.yml` 执行幂等建表脚本；如果使用 Docker 首次初始化，脚本也会通过 `/docker-entrypoint-initdb.d/001-schema.sql` 执行一次。
 - 管泽昊本机已安装 PostgreSQL 15 + PostGIS 3.6.2，并已在 `secii_db` 中执行过 `schema.sql`。
 
 ### 3. Redis 准备
@@ -222,8 +223,7 @@ http://localhost:8080/swagger-ui.html
 注意：
 
 - 启动前请确认 PostgreSQL 和 Redis 已启动。
-- 当前业务 Controller 尚未完成，后端主要完成了基础设施和启动配置。
-- Spring Security 后续还需要补正式 `SecurityFilterChain`，并把 `JwtAuthFilter` 接入过滤器链。
+- 当前后端已经接入正式 `SecurityFilterChain` 和 `JwtAuthFilter`，`/api/admin/**` 需要管理员角色，`/api/user/**` 等用户接口需要登录态。
 
 ## 前端启动说明
 
@@ -265,10 +265,9 @@ npm.cmd run preview
 
 说明：
 
-- F1.2 已配置 Vite 开发代理：前端请求 `/api/**` 会在开发环境转发到 `http://localhost:8080`。如需修改后端地址，请调整 `frontend/.env.development` 中的 `VITE_API_PROXY_TARGET`。
+- Vite 开发代理已配置：前端请求 `/api/**` 会在开发环境转发到 `http://localhost:8080`。如需修改后端地址，请设置 `VITE_API_PROXY_TARGET`。
 - 生产环境默认 API 前缀为 `/api`，需要由部署层 Nginx、网关或同源后端负责转发。
-- F1.1 当前全量引入了 Element Plus，构建时 Vite 可能提示首包偏大。后续页面变多时，可以改成 Element Plus 按需导入来优化体积。
-- 当前前端只有基础占位首页，后续 F1.3-F1.7 会继续补类型定义、request、路由守卫、Pinia stores 和布局。
+- 当前构建可能提示首包超过 500 kB；这是 Element Plus 与业务页面集中打包带来的性能警告，不影响 P4 本地演示和构建成功。
 
 ## 常见问题
 
@@ -319,20 +318,17 @@ http://127.0.0.1:5173
 
 后端：
 
-- `B1.1` Maven 父 POM
-- `B1.2` 9 个 Maven 子模块与依赖关系
-- `B1.3` `schema.sql`
-- `B1.4` CORS / JWT / Redis / Redisson 配置
-- `B1.5` 统一异常处理
-- `B1.6` 统一响应、分页响应、枚举
-- `B1.7` JWT 生成解析、认证过滤器、安全工具
-- `B1.8` 错误码、消息类型常量、日期/加密/校验工具
-- `B1.9` 敏感词过滤骨架
-- `B1.10` Spring Boot 启动类与配置文件
+- Maven 父 POM 与 9 个子模块
+- `schema.sql`、`docker-compose.yml`、`application*.yml`
+- CORS / JWT / Redis / Redisson / Spring Security
+- 用户、任务、订单、评价、举报、消息、公告、管理后台接口
+- 单元测试、WebMvc 测试与 Testcontainers 集成测试
 
 前端：
 
-- `F1.1` Vue 3 + Vite + TypeScript 脚手架，安装 Element Plus、Pinia、Axios、Vue Router
+- Vue 3 + Vite + TypeScript + Element Plus + Pinia + Axios + Vue Router
+- 登录注册、任务、订单、消息、个人中心、举报、管理后台页面
+- Vitest 单元测试与覆盖率报告
 
 ## 参考文档
 
