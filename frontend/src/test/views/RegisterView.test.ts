@@ -29,8 +29,6 @@ async function mountRegister() {
     routes: [
       { path: '/register', component: RegisterView },
       { path: '/login', component: { template: '<div>login</div>' } },
-      { path: '/agreement', component: { template: '<div>agreement</div>' } },
-      { path: '/privacy', component: { template: '<div>privacy</div>' } },
     ],
   })
   await router.push('/register')

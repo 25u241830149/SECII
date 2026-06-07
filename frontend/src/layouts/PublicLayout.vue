@@ -1,6 +1,6 @@
 <template>
   <main class="public-layout">
-    <section class="public-card" :class="{ 'public-card--register': isRegisterPage }">
+    <section class="public-card" :class="{ 'public-card--register': isRegisterPage, 'public-card--document': isDocumentPage }">
       <figure class="campus-art" aria-hidden="true">
         <img :src="authIllustration" alt="" />
       </figure>
@@ -55,29 +55,63 @@
         </div>
       </div>
 
-      <section class="auth-panel">
+      <section class="auth-panel" :class="{ 'auth-panel--document': isDocumentPage }">
         <RouterView />
       </section>
     </section>
 
     <footer class="public-footer">
       <span>© 2026 CampusHub 校园互助平台</span>
-      <span>帮助中心</span>
-      <span>隐私政策</span>
-      <span>服务条款</span>
+      <RouterLink to="/help-center">帮助中心</RouterLink>
+      <button type="button" class="footer-link-button" @click="openLegalDialog('privacy-policy')">隐私政策</button>
+      <button type="button" class="footer-link-button" @click="openLegalDialog('terms-of-service')">服务条款</button>
     </footer>
+
+    <LegalDocumentDialog
+      :model-value="isLegalDialogOpen"
+      :document-key="legalDialogKey"
+      @close="closeLegalDialog"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import authIllustration from '@/assets/illustation.png'
 import CampusHubLogo from '@/components/CampusHubLogo.vue'
+import LegalDocumentDialog from '@/views/system/LegalDocumentDialog.vue'
+import type { PublicDocumentKey } from '@/views/system/publicDocuments'
 
 const route = useRoute()
+const router = useRouter()
 const isRegisterPage = computed(() => route.name === 'register')
+const isDocumentPage = computed(() => route.name === 'help-center')
+const legalDialogKey = computed<PublicDocumentKey | null>(() => {
+  const dialog = route.query.dialog
+  return dialog === 'privacy-policy' || dialog === 'terms-of-service' ? dialog : null
+})
+const isLegalDialogOpen = computed(() => legalDialogKey.value !== null)
+
+const openLegalDialog = (key: Extract<PublicDocumentKey, 'privacy-policy' | 'terms-of-service'>) => {
+  router.push({
+    path: route.path,
+    query: {
+      ...route.query,
+      dialog: key,
+    },
+  })
+}
+
+const closeLegalDialog = () => {
+  const nextQuery = { ...route.query }
+  delete nextQuery.dialog
+  router.push({
+    path: route.path,
+    query: nextQuery,
+  })
+}
 </script>
 
 <style scoped>
@@ -291,6 +325,19 @@ const isRegisterPage = computed(() => route.name === 'register')
   box-shadow: 0 24px 52px rgba(15, 23, 42, 0.1);
 }
 
+.public-card--document {
+  min-height: 760px;
+}
+
+.auth-panel--document {
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
+  max-height: min(78vh, 760px);
+  padding: 34px 32px;
+  overflow: hidden;
+}
+
 .public-card--register .auth-panel {
   align-self: center;
   padding: 34px 38px;
@@ -344,6 +391,30 @@ const isRegisterPage = computed(() => route.name === 'register')
   padding: 22px 0 0;
   color: #7a8495;
   font-size: 13px;
+}
+
+.public-footer a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.public-footer a:hover {
+  color: #1268ed;
+}
+
+.footer-link-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.footer-link-button:hover {
+  color: #1268ed;
 }
 
 @media (max-width: 1120px) {

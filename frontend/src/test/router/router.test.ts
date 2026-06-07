@@ -13,6 +13,7 @@ async function createTestRouter() {
   vi.doMock('@/views/home/Home.vue', () => ({ default: simpleView }))
   vi.doMock('@/views/system/ForbiddenView.vue', () => ({ default: simpleView }))
   vi.doMock('@/views/system/NotFoundView.vue', () => ({ default: simpleView }))
+  vi.doMock('@/views/system/PublicDocumentView.vue', () => ({ default: simpleView }))
   vi.doMock('@/views/auth/LoginView.vue', () => ({ default: simpleView }))
   vi.doMock('@/views/order/OrderList.vue', () => ({ default: simpleView }))
   vi.doMock('@/views/admin/StatsDashboard.vue', () => ({ default: simpleView }))
@@ -78,5 +79,17 @@ describe('router guards', () => {
     await flushPromises()
 
     expect(document.title.endsWith(' - CampusHub')).toBe(true)
+  })
+
+  it('allows authenticated users to open public document routes', async () => {
+    const { router, authStore } = await createTestRouter()
+    authStore.initialized = true
+    authStore.token = 'token'
+
+    await router.push('/privacy')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/help-center')
+    expect(router.currentRoute.value.query.dialog).toBe('privacy-policy')
   })
 })
