@@ -64,9 +64,9 @@
 
       <el-checkbox v-model="form.agreementAccepted">
         我已阅读并同意
-        <RouterLink to="/agreement">《用户协议》</RouterLink>
+        <button type="button" class="inline-link-button" @click="openLegalDialog('terms-of-service')">《用户协议》</button>
         与
-        <RouterLink to="/privacy">《隐私政策》</RouterLink>
+        <button type="button" class="inline-link-button" @click="openLegalDialog('privacy-policy')">《隐私政策》</button>
       </el-checkbox>
 
       <el-button class="primary-action" type="primary" size="large" :loading="loading" @click="submit">
@@ -85,12 +85,13 @@
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadFiles, UploadProps, UploadUserFile } from 'element-plus'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import { uploadStudentCard } from '@/api/upload'
 import { registerUser } from '@/api/user'
 
 const router = useRouter()
+const route = useRoute()
 
 interface RegisterForm {
   studentNo: string
@@ -162,6 +163,16 @@ const handleFormScroll = () => {
   formScrollTimer = window.setTimeout(() => {
     formScrolling.value = false
   }, 900)
+}
+
+const openLegalDialog = (dialog: 'privacy-policy' | 'terms-of-service') => {
+  router.push({
+    path: route.path,
+    query: {
+      ...route.query,
+      dialog,
+    },
+  })
 }
 
 const submit = async () => {
@@ -282,6 +293,16 @@ a {
   color: #1268ed;
   font-weight: 700;
   text-decoration: none;
+}
+
+.inline-link-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1268ed;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .switch-line {

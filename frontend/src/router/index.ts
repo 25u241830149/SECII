@@ -17,6 +17,7 @@ declare module 'vue-router' {
     guestOnly?: boolean
     publicTitle?: string
     publicEyebrow?: string
+    publicDocumentKey?: 'help-center' | 'privacy-policy' | 'terms-of-service' | 'credit-rules'
   }
 }
 
@@ -155,6 +156,53 @@ const routes: RouteRecordRaw[] = [
         },
       },
     ],
+  },
+  {
+    path: '/help/credit',
+    name: 'help-credit',
+    component: () => import('@/views/system/PublicDocumentView.vue'),
+    meta: {
+      title: '信用分规则',
+      publicDocumentKey: 'credit-rules',
+    },
+  },
+  {
+    path: '/help-center',
+    alias: ['/help'],
+    name: 'help-center',
+    component: () => import('@/views/system/PublicDocumentView.vue'),
+    meta: {
+      title: '帮助中心',
+      publicDocumentKey: 'help-center',
+    },
+  },
+  {
+    path: '/privacy',
+    redirect: {
+      name: 'help-center',
+      query: { dialog: 'privacy-policy' },
+    },
+  },
+  {
+    path: '/privacy-policy',
+    redirect: {
+      name: 'help-center',
+      query: { dialog: 'privacy-policy' },
+    },
+  },
+  {
+    path: '/agreement',
+    redirect: {
+      name: 'help-center',
+      query: { dialog: 'terms-of-service' },
+    },
+  },
+  {
+    path: '/terms-of-service',
+    redirect: {
+      name: 'help-center',
+      query: { dialog: 'terms-of-service' },
+    },
   },
   {
     path: '/admin',
