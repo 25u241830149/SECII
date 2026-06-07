@@ -13,15 +13,13 @@ P4 要求基础 CI/CD 至少包括：
 - 自动构建项目，验证可以正常打包、部署
 - 保留最近一次运行结果记录
 
-当前仓库提供 GitLab CI 配置文件和本机等价命令运行记录。由于本地仓库不包含 GitLab Web 页面截图，提交后仍需在 GitLab Runner 上执行一次并补充页面截图或流水线链接。
-
 ## 2. 流水线文件清单
 
-| 文件 | 作用 |
-| --- | --- |
-| `.gitlab-ci.yml` | 顶层父流水线，根据变更触发后端或前端子流水线 |
-| `.gitlab/backend.yml` | 后端安装、质量检查、单元测试、集成测试、打包 |
-| `.gitlab/frontend.yml` | 前端安装、类型检查、覆盖率测试、构建 |
+| 文件                     | 作用                                         |
+| ------------------------ | -------------------------------------------- |
+| `.gitlab-ci.yml`       | 顶层父流水线，根据变更触发后端或前端子流水线 |
+| `.gitlab/backend.yml`  | 后端安装、质量检查、单元测试、集成测试、打包 |
+| `.gitlab/frontend.yml` | 前端安装、类型检查、覆盖率测试、构建         |
 
 ## 3. 顶层流水线结构
 
@@ -36,13 +34,13 @@ P4 要求基础 CI/CD 至少包括：
 
 `.gitlab/backend.yml` 包含 5 个阶段：
 
-| 阶段 | Job | 命令/动作 |
-| --- | --- | --- |
-| `install` | `backend_install_dependencies` | `mvn ... dependency:go-offline` |
-| `quality` | `backend_static_check` | `mvn ... -DskipTests compile` |
-| `unit_test` | `backend_unit_test` | `mvn ... "-Dtest=!*IntegrationTest" ... test` |
-| `integration_test` | `backend_integration_test` | 连接 PostGIS/Redis service，执行 `"-Dtest=*IntegrationTest"` |
-| `build` | `backend_build` | `mvn ... -DskipTests package` |
+| 阶段                 | Job                              | 命令/动作                                                      |
+| -------------------- | -------------------------------- | -------------------------------------------------------------- |
+| `install`          | `backend_install_dependencies` | `mvn ... dependency:go-offline`                              |
+| `quality`          | `backend_static_check`         | `mvn ... -DskipTests compile`                                |
+| `unit_test`        | `backend_unit_test`            | `mvn ... "-Dtest=!*IntegrationTest" ... test`                |
+| `integration_test` | `backend_integration_test`     | 连接 PostGIS/Redis service，执行 `"-Dtest=*IntegrationTest"` |
+| `build`            | `backend_build`                | `mvn ... -DskipTests package`                                |
 
 后端集成测试不是使用 `docker:dind`，而是使用 GitLab service：
 
@@ -61,12 +59,12 @@ backend/campushub-parent/**/target/surefire-reports/
 
 `.gitlab/frontend.yml` 包含 3 个阶段和 4 个 job：
 
-| 阶段 | Job | 命令/动作 |
-| --- | --- | --- |
+| 阶段        | Job                               | 命令/动作                                |
+| ----------- | --------------------------------- | ---------------------------------------- |
 | `install` | `frontend_install_dependencies` | `npm ci --cache .npm --prefer-offline` |
-| `quality` | `frontend_type_check` | `npm exec vue-tsc -- --noEmit` |
-| `quality` | `frontend_test` | `npm run test:coverage` |
-| `build` | `frontend_build` | `npm run build` |
+| `quality` | `frontend_type_check`           | `npm exec vue-tsc -- --noEmit`         |
+| `quality` | `frontend_test`                 | `npm run test:coverage`                |
+| `build`   | `frontend_build`                | `npm run build`                        |
 
 前端 coverage 产物会归档：
 
@@ -158,14 +156,14 @@ mvn -q -DskipTests package
 
 ## 7. 与 P4 CI/CD 要求的映射
 
-| P4 要求 | 仓库现状 | 结论 |
-| --- | --- | --- |
-| 自动安装依赖 | 后端 `dependency:go-offline`，前端 `npm ci` | 已满足 |
-| 自动静态检查/质量检查 | 后端 `compile`，前端 `vue-tsc --noEmit` | 已满足 |
-| 自动运行单元测试 | 后端 `backend_unit_test`，前端 `frontend_test` | 已满足 |
-| 自动运行集成测试 | 后端 `backend_integration_test` | 已满足 |
-| 自动构建 | 后端 `package`，前端 `build` | 已满足 |
-| 运行结果记录 | 本文记录本机等价命令结果；GitLab 页面截图需提交后补 | 基本满足，外部截图待补 |
+| P4 要求               | 仓库现状                                            | 结论                   |
+| --------------------- | --------------------------------------------------- | ---------------------- |
+| 自动安装依赖          | 后端 `dependency:go-offline`，前端 `npm ci`     | 已满足                 |
+| 自动静态检查/质量检查 | 后端 `compile`，前端 `vue-tsc --noEmit`         | 已满足                 |
+| 自动运行单元测试      | 后端 `backend_unit_test`，前端 `frontend_test`  | 已满足                 |
+| 自动运行集成测试      | 后端 `backend_integration_test`                   | 已满足                 |
+| 自动构建              | 后端 `package`，前端 `build`                    | 已满足                 |
+| 运行结果记录          | 本文记录本机等价命令结果；GitLab 页面截图需提交后补 | 基本满足，外部截图待补 |
 
 ## 8. 当前限制与改进建议
 

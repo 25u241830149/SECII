@@ -68,8 +68,12 @@ public class AuthService {
 
     public LoginResponseDTO login(LoginRequest request) {
         validateLoginRequest(request);
-        User user = userMapper.selectActiveByStudentId(request.studentId());
-        if (user == null || !EncryptUtils.matchesPassword(request.password(), user.getPassword())) {
+        String studentId = request.studentId().trim();
+        User user = userMapper.selectActiveByStudentId(studentId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "学号或密码错误");
+        }
+        if (!EncryptUtils.matchesPassword(request.password(), user.getPassword())) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "学号或密码错误");
         }
         if (Integer.valueOf(USER_STATUS_BANNED).equals(user.getStatus())) {
