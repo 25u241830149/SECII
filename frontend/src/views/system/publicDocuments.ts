@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 export type PublicDocumentKey = 'help-center' | 'privacy-policy' | 'terms-of-service' | 'credit-rules'
+=======
+export type PublicDocumentKey = 'help-center' | 'privacy-policy' | 'terms-of-service'
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
 
 type DocumentTable = {
   headers: string[]
@@ -124,6 +128,12 @@ export const publicDocuments: Record<PublicDocumentKey, PublicDocument> = {
             ['被举报属实（严重违规）', '清零或封号'],
           ],
         },
+<<<<<<< HEAD
+=======
+        paragraphs: [
+          '信用分低于 60 分时，接单和发布功能将受到限制。你可以在"个人主页 → 信用分"中查看详细的分数变动记录。若认为扣分有误，可通过举报系统提交申诉。',
+        ],
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
       },
       {
         title: '10. 如何举报违规行为？',
@@ -298,6 +308,11 @@ export const publicDocuments: Record<PublicDocumentKey, PublicDocument> = {
         bullets: [
           '📧 邮箱：campus-hub@example.com',
           '💬 站内反馈：登录后在"消息中心"联系管理员',
+<<<<<<< HEAD
+=======
+        ],
+        paragraphs: [
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
           '我们会在收到你的反馈后尽快予以回复。',
         ],
       },
@@ -377,7 +392,10 @@ export const publicDocuments: Record<PublicDocumentKey, PublicDocument> = {
         title: '五、违规处理',
         paragraphs: [
           '5.1 我们有权对违反本协议的行为采取处理措施，包括但不限于：',
+<<<<<<< HEAD
           '5.2 用户如对处理结果有异议，可通过举报申诉渠道提交申诉，我们将在核实后予以答复。',
+=======
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
         ],
         table: {
           headers: ['违规行为', '处理措施'],
@@ -390,6 +408,12 @@ export const publicDocuments: Record<PublicDocumentKey, PublicDocument> = {
             ['攻击平台系统', '永久封禁，保留法律追责权利'],
           ],
         },
+<<<<<<< HEAD
+=======
+        paragraphs: [
+          '5.2 用户如对处理结果有异议，可通过举报申诉渠道提交申诉，我们将在核实后予以答复。',
+        ],
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
       },
       {
         title: '六、知识产权',
@@ -434,6 +458,7 @@ export const publicDocuments: Record<PublicDocumentKey, PublicDocument> = {
       },
     ],
   },
+<<<<<<< HEAD
 
   'credit-rules': {
     eyebrow: '信用分规则',
@@ -502,4 +527,6 @@ export const publicDocuments: Record<PublicDocumentKey, PublicDocument> = {
       },
     ],
   },
+=======
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
 }

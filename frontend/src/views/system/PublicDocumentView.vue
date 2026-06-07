@@ -4,7 +4,11 @@
       <RouterLink class="help-brand" to="/login">
         <CampusHubLogo size="md" />
         <div>
+<<<<<<< HEAD
           <strong>CampusHub {{ helpDocument.eyebrow }}</strong>
+=======
+          <strong>CampusHub 帮助中心</strong>
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
           <span>校园互助平台参考手册</span>
         </div>
       </RouterLink>
@@ -35,7 +39,11 @@
             :key="section.id"
             class="help-toc-link"
             :class="{ active: activeSectionId === section.id }"
+<<<<<<< HEAD
             :to="{ name: route.name, hash: `#${section.id}` }"
+=======
+            :to="{ name: 'help-center', hash: `#${section.id}` }"
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
           >
             {{ section.title }}
           </RouterLink>
@@ -102,10 +110,14 @@ import { publicDocuments, type PublicDocumentKey } from './publicDocuments'
 const route = useRoute()
 const router = useRouter()
 
+<<<<<<< HEAD
 const helpDocument = computed(() => {
   const key = route.meta.publicDocumentKey as PublicDocumentKey | undefined
   return key ? publicDocuments[key] : publicDocuments['help-center']
 })
+=======
+const helpDocument = publicDocuments['help-center']
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
 
 const slugify = (title: string) =>
   title
@@ -113,6 +125,7 @@ const slugify = (title: string) =>
     .replace(/[^\w\u4e00-\u9fa5]+/g, '-')
     .replace(/^-+|-+$/g, '')
 
+<<<<<<< HEAD
 const indexedSections = computed(() =>
   helpDocument.value.sections.map((section, index) => ({
     ...section,
@@ -123,6 +136,16 @@ const indexedSections = computed(() =>
 const normalizeHash = (hash: string) => decodeURIComponent(hash.replace(/^#/, ''))
 
 const activeSectionId = computed(() => normalizeHash(route.hash) || indexedSections.value[0]?.id || '')
+=======
+const indexedSections = helpDocument.sections.map((section, index) => ({
+  ...section,
+  id: `section-${index + 1}-${slugify(section.title)}`,
+}))
+
+const normalizeHash = (hash: string) => decodeURIComponent(hash.replace(/^#/, ''))
+
+const activeSectionId = computed(() => normalizeHash(route.hash) || indexedSections[0]?.id || '')
+>>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
 
 const legalDialogKey = computed<PublicDocumentKey | null>(() => {
   const dialog = route.query.dialog
