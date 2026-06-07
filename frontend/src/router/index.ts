@@ -17,11 +17,7 @@ declare module 'vue-router' {
     guestOnly?: boolean
     publicTitle?: string
     publicEyebrow?: string
-<<<<<<< HEAD
     publicDocumentKey?: 'help-center' | 'privacy-policy' | 'terms-of-service' | 'credit-rules'
-=======
-    publicDocumentKey?: 'help-center' | 'privacy-policy' | 'terms-of-service'
->>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
   }
 }
 
@@ -162,7 +158,6 @@ const routes: RouteRecordRaw[] = [
     ],
   },
   {
-<<<<<<< HEAD
     path: '/help/credit',
     name: 'help-credit',
     component: () => import('@/views/system/PublicDocumentView.vue'),
@@ -172,8 +167,6 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-=======
->>>>>>> 11effb30dd69de51337014e8d3d48cf9ddf31a5c
     path: '/help-center',
     alias: ['/help'],
     name: 'help-center',
