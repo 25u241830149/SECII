@@ -1,0 +1,168 @@
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Arial, Microsoft YaHei, sans-serif", "primaryColor": "#eef6ff", "primaryBorderColor": "#4d7cba", "primaryTextColor": "#1f2a37", "lineColor": "#6b7280", "tertiaryColor": "#ffffff"}}}%%
+classDiagram
+direction LR
+
+class ApplicationServices {
+    <<application services>>
+    +AuthService.register/login
+    +UserService.getProfile/updateProfile
+    +VerificationService.submit/review
+    +TaskService.create/update/delete
+    +GrabService.grab
+    +OrderStatusService.confirm/complete/cancel
+    +ReviewService.create/listByUser
+    +MessageService.notifyUser/list/markRead
+    +ReportService.create/handle
+}
+
+class MapperLayer {
+    <<MyBatis mapper>>
+    +UserMapper
+    +TaskMapper
+    +OrderMapper
+    +ReviewMapper
+    +MessageMapper
+    +ReportMapper
+}
+
+class User {
+    <<entity>>
+    +Long id
+    +String studentId
+    +String nickname
+    +Integer role
+    +Integer creditScore
+    +Integer status
+}
+
+class UserVerification {
+    <<entity>>
+    +Long id
+    +Long userId
+    +Long reviewerId
+    +String realName
+    +Integer status
+}
+
+class Task {
+    <<entity>>
+    +Long id
+    +Long publisherId
+    +String title
+    +Integer category
+    +BigDecimal reward
+    +Integer status
+}
+
+class TaskFavorite {
+    <<entity>>
+    +Long id
+    +Long userId
+    +Long taskId
+}
+
+class Order {
+    <<entity>>
+    +Long id
+    +Long taskId
+    +Long posterId
+    +Long helperId
+    +Integer status
+    +Integer version
+}
+
+class Review {
+    <<entity>>
+    +Long id
+    +Long orderId
+    +Long reviewerId
+    +Long targetUserId
+    +Integer rating
+}
+
+class Message {
+    <<entity>>
+    +Long id
+    +Long receiverId
+    +Integer type
+    +String title
+    +Boolean read
+}
+
+class ChatMessage {
+    <<entity>>
+    +Long id
+    +Long orderId
+    +Long senderId
+    +Long receiverId
+    +String content
+}
+
+class Report {
+    <<entity>>
+    +Long id
+    +Long reporterId
+    +Integer targetType
+    +Long targetId
+    +Integer status
+}
+
+class DomainEvents {
+    <<Spring events>>
+    +OrderCreatedEvent
+    +OrderCompletedEvent
+    +TaskCancelledEvent
+    +ReviewCreatedEvent
+    +VerificationReviewedEvent
+    +ReportHandledEvent
+}
+
+class CommonEnums {
+    <<enumeration>>
+    +UserRole
+    +VerificationStatus
+    +TaskStatus
+    +OrderStatus
+    +MessageType
+}
+
+class JwtTokenProvider {
+    <<support>>
+    +generateAccessToken(userId, username, role)
+    +validateToken(token)
+}
+
+class CreditCalculator {
+    <<support>>
+    +calculateScore(averageRating, reviewCount)
+    +adjustmentForRating(rating)
+}
+
+ApplicationServices ..> MapperLayer : persists
+ApplicationServices ..> JwtTokenProvider : authenticates
+ApplicationServices ..> DomainEvents : publishes/listens
+ApplicationServices ..> CreditCalculator : recalculates credit
+ApplicationServices ..> User : manages
+ApplicationServices ..> Task : manages
+ApplicationServices ..> Order : manages
+ApplicationServices ..> Review : manages
+ApplicationServices ..> Message : notifies
+ApplicationServices ..> Report : moderates
+
+User "1" --> "0..1" UserVerification : verifies
+User "1" --> "0..*" Task : publishes
+User "1" --> "0..*" TaskFavorite : favorites
+Task "1" --> "0..*" TaskFavorite : collected
+Task "1" --> "0..*" Order : creates
+User "1" --> "0..*" Order : poster/helper
+Order "1" --> "0..2" Review : receives
+User "1" --> "0..*" Review : writes/receives
+Order "1" --> "0..*" ChatMessage : chats
+User "1" --> "0..*" Message : receives
+User "1" --> "0..*" Report : reports
+
+User ..> CommonEnums
+UserVerification ..> CommonEnums
+Task ..> CommonEnums
+Order ..> CommonEnums
+Message ..> CommonEnums
